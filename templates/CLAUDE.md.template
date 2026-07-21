@@ -1,0 +1,41 @@
+# CLAUDE.md — [Client / Engagement name]
+
+> Engagement template. Copy to the root of the client repo, fill in the sections,
+> delete what does not apply. Goal: stay under ~150 lines.
+
+## Context
+- Client: [name, industry]
+- Engagement: [SRE audit / platform build / migration / AI MVP / ...]
+- Environments: [dev / staging / prod — GCP regions, clusters]
+
+## Stack
+- Cloud: GCP [+ on-prem / other]
+- IaC: [Terraform | OpenTofu] [+ Terragrunt] — pinned version: [x.y.z]
+- Kubernetes: [GKE x.yy / on-prem distribution] — GitOps: [ArgoCD | FluxCD]
+- Languages: Python [3.x, uv/poetry], TypeScript [Node 2x, pnpm/npm]
+
+## Commands
+- Build: `[...]`
+- Tests: `[...]`
+- Lint: `ruff check . && mypy .` / `pnpm lint && pnpm tsc --noEmit`
+- Infra plan: `[terragrunt run-all plan / tofu plan]`
+
+## Conventions
+- [Mandated architecture pattern, module structure, naming conventions]
+- [Forbidden / legacy directories not to touch]
+- Secrets: never in plaintext — [Secret Manager / External Secrets / SOPS]
+
+## Agent delegation — IMPORTANT
+Delegate systematically according to these rules:
+- Any work on .tf/.hcl files, modules or state → `iac-engineer` agent
+- Any work on K8s manifests, Helm charts, ArgoCD/FluxCD → `k8s-gitops-engineer` agent
+- Any review of Python/TypeScript application code, and systematically after writing or modifying code → `code-reviewer` agent
+- Any production incident, alert, error or broken deployment → `incident-responder` agent
+- Any reliability / production-readiness assessment → `sre-auditor` agent
+- Any design or review of an LLM/RAG/agent system → `ai-platform-engineer` agent
+- Any client deliverable (proposal, report, RFP response) → `presales-architect` agent
+
+## Guardrails
+- Never run `apply`, mutating `kubectl`, rollbacks or restarts without explicit human approval
+- Always present the plan/diff before any infrastructure change
+- Client data: never copy secrets, dumps or personal data into the conversation
