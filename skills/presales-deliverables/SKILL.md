@@ -14,7 +14,7 @@ Turn raw material (call notes, audit findings, emails) into client-ready consult
 3. Executive summary always first, max half a page: client's stake → what we propose → outcome → effort/timeline range.
 4. Facts vs assumptions: anything not stated by the client goes in an "Assumptions & prerequisites" section. Never invent client names, volumes, budgets or dates.
 5. Quantify wherever honest: current pain (incidents/month, MTTR, cost) vs target. If no numbers exist, propose measuring them as a first step.
-6. No superlatives, no buzzword chains. One differentiator argued well beats five asserted.
+6. No superlatives, no buzzword chains. One differentiator argued well beats five asserted. Tone: the `humanizer` skill.
 7. Pricing: structure and drivers only (per workstream, T&M vs fixed), figures as placeholders like `[X]` unless the user provides rates.
 
 ## Structures by type
@@ -33,7 +33,7 @@ Turn raw material (call notes, audit findings, emails) into client-ready consult
 
 **RFP answer**: per question — restate in one line, direct answer first sentence, then approach/evidence, then differentiator. Respect imposed formats and word limits strictly.
 
-**Audit report**: executive scorecard → top risks ranked (likelihood × impact) with evidence → quick wins (<1 week) → 30/60/90 roadmap. Pair well with the `sre-auditor` agent's output.
+**Audit report**: structure and scoring come from the `sre-audit` skill. This skill governs the client-facing layer only: executive summary, vocabulary, assumptions.
 
 **Executive one-pager**: problem → cost of inaction → proposed move → proof → next step (a meeting, a scoped assessment). 250 words max.
 
