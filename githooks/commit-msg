@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# commit-msg — strip AI attribution trailers, then enforce Angular headers.
+#
+# Activated globally via core.hooksPath, so it must not shadow a repository's
+# own hook: a local .git/hooks/commit-msg runs first and its exit code wins.
+# Repositories that set core.hooksPath themselves (Husky) never reach this file.
+
+set -euo pipefail
+
+MSG_FILE="$1"
+
+# Run the repository's own hook first, if it has one.
+local_hook="$(git rev-parse --git-path hooks/commit-msg)"
+if [ -x "${local_hook}" ] && [ "$(readlink -f "${local_hook}")" != "$(readlink -f "$0")" ]; then
+  "${local_hook}" "${MSG_FILE}"
+fi
+
+# 1. Drop AI attribution trailers, then any blank lines they left at the end.
+tmp="$(mktemp)"
+trap 'rm -f "${tmp}"' EXIT
+grep -v -i -E \
+  -e '^[[:space:]]*Co-Authored-By:.*(claude|anthropic)' \
+  -e '^[[:space:]]*(🤖[[:space:]]*)?Generated with .*Claude' \
+  -e '^[[:space:]]*Claude-Session:' \
+  "${MSG_FILE}" > "${tmp}" || true
+# Trailing blank lines, in reverse then back.
+tac "${tmp}" | awk 'NF {found = 1} found' | tac > "${MSG_FILE}"
+
+# 2. Subject = first line that is neither blank nor a git comment.
+subject="$(grep -v -E '^[[:space:]]*#' "${MSG_FILE}" | grep -m1 -E '[^[:space:]]' || true)"
+
+# 3. Messages git generates or amends later are exempt.
+case "${subject}" in
+  Merge\ *|Revert\ \"*|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+
+# 4. Angular header.
+pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|test|revert)(\([a-z0-9._/-]+\))?!?: [^A-Z].{0,70}[^.]$'
+if printf '%s\n' "${subject}" | grep -q -E "${pattern}"; then
+  exit 0
+fi
+
+cat >&2 <<EOF
+commit-msg: the subject is not a valid Angular header.
+
+  ${subject}
+
+Expected: <type>(<scope>): <subject>
+  type    build chore ci docs feat fix perf refactor test revert
+  scope   optional, lowercase, [a-z0-9._/-]
+  subject imperative, lowercase first letter, no trailing period, 2-72 chars
+  break   add ! after the scope and a BREAKING CHANGE: footer
+
+  fix(api)!: handle empty payload
+EOF
+exit 1
