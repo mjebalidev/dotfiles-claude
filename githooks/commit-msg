@@ -10,8 +10,10 @@ set -euo pipefail
 
 MSG_FILE="$1"
 
-# Run the repository's own hook first, if it has one.
-local_hook="$(git rev-parse --git-path hooks/commit-msg)"
+# Run the repository's own hook first, if it has one. Resolved from --git-dir,
+# not --git-path, because the latter already honours core.hooksPath and would
+# point back at this file.
+local_hook="$(git rev-parse --git-dir)/hooks/commit-msg"
 if [ -x "${local_hook}" ] && [ "$(readlink -f "${local_hook}")" != "$(readlink -f "$0")" ]; then
   "${local_hook}" "${MSG_FILE}"
 fi
