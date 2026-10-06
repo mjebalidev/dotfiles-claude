@@ -11,14 +11,18 @@
 ## Stack
 - Cloud: GCP [+ on-prem / other]
 - IaC: [Terraform | OpenTofu] [+ Terragrunt] — pinned version: [x.y.z]
-- Kubernetes: [GKE x.yy / on-prem distribution] — GitOps: [ArgoCD | FluxCD]
+- Kubernetes: [GKE x.yy / on-prem distribution] — GitOps: [Argo CD | Flux]
+- Routing: [Gateway API (GKE Gateway / Envoy Gateway) | Ingress + controller]
 - Languages: Python [3.x, uv/poetry], TypeScript [Node 2x, pnpm/npm]
+- CLIs in scope: `gcloud` [project(s): ...], `glab` [GitLab group/project: ...], `kubectl`/`helm`, [`tofu`|`terraform`], `terragrunt`
 
 ## Commands
 - Build: `[...]`
 - Tests: `[...]`
 - Lint: `ruff check . && mypy .` / `pnpm lint && pnpm tsc --noEmit`
-- Infra plan: `[terragrunt run-all plan / tofu plan]`
+- Infra plan: `[terragrunt run --all plan / tofu plan]`
+- CI: `glab ci lint`, `glab ci list`, `glab ci trace <job>`
+- Cloud reads: `gcloud logging read '<filter>' --freshness=1h`, `gcloud asset search-all-resources`
 
 ## Conventions
 - [Mandated architecture pattern, module structure, naming conventions]
@@ -28,7 +32,7 @@
 ## Agent delegation — IMPORTANT
 Delegate systematically according to these rules:
 - Any work on .tf/.hcl files, modules or state → `iac-engineer` agent
-- Any work on K8s manifests, Helm charts, ArgoCD/FluxCD → `k8s-gitops-engineer` agent
+- Any work on K8s manifests, Helm charts, Argo CD/Flux → `k8s-gitops-engineer` agent
 - Any review of Python/TypeScript application code, and systematically after writing or modifying code → `code-reviewer` agent
 - Any production incident, alert, error or broken deployment → `incident-responder` agent
 - Any reliability / production-readiness assessment → `sre-auditor` agent
@@ -37,5 +41,6 @@ Delegate systematically according to these rules:
 
 ## Guardrails
 - Never run `apply`, mutating `kubectl`, rollbacks or restarts without explicit human approval
+- `gcloud` and `glab` are read-only tools here: no resource mutations, no `glab mr merge`, no `glab ci run/retry` on deploy pipelines
 - Always present the plan/diff before any infrastructure change
 - Client data: never copy secrets, dumps or personal data into the conversation

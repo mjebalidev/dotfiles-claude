@@ -18,6 +18,21 @@ templates/
 install.sh              # idempotent bootstrap: symlinks ~/.claude/{agents,skills} here
 ```
 
+## Tooling conventions
+
+The agents' `tools:` frontmatter lists **Claude Code** tools (Read, Grep, Bash, …).
+External CLIs are driven through `Bash`, and the agents that need them document the
+commands they may use in a `## Tooling` section:
+
+| CLI | Agents | Posture |
+| --- | --- | --- |
+| `gcloud` | iac-engineer, k8s-gitops-engineer, ai-platform-engineer, incident-responder, sre-auditor, code-reviewer | read-only (`describe`/`list`/`logging read`/`asset`/`recommender`); mutations go through IaC |
+| `glab` | all Bash-enabled agents | read/review (`mr diff`, `mr view`, `ci list`, `ci trace`, `ci lint`, `api`); never `mr merge`, `ci run/retry` |
+| `kubectl`, `helm`, `flux`, `argocd` | k8s-gitops-engineer, incident-responder, sre-auditor | get/describe by default; mutating commands are proposed, not run |
+
+`presales-architect` deliberately has no `Bash`: it writes deliverables from material
+already in context, so it needs no cloud or Git access.
+
 ## Bootstrap on a new machine
 
 Requires WSL2/Linux with the repo on the **Linux filesystem** (under `~`, never `/mnt/c`)
