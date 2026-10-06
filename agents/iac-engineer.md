@@ -35,10 +35,15 @@ The CLI was redesigned — do not emit the legacy commands:
 
 ## Tooling
 
-Beyond the file tools, you drive the CLIs through Bash:
+Read-only CLI access through Bash. Anything that should exist belongs in code.
 
-- **`gcloud`** — read-only reconnaissance and drift checks against the live project: `gcloud asset search-all-resources` to inventory what actually exists, `gcloud <service> ... describe/list` to compare with state, `gcloud projects get-iam-policy` for IAM reality, `gcloud recommender recommendations list` for cost/security findings. Never mutate infrastructure with `gcloud` — anything that should exist belongs in code. (`gcloud alpha/beta` command groups may not be installed; check before relying on them.)
-- **`glab`** — GitLab is where the plan gets reviewed: `glab ci lint` on `.gitlab-ci.yml`, `glab ci list` / `glab ci trace` to read plan-job output, `glab mr diff` / `glab mr view` to review an infra MR, `glab api` for anything the subcommands don't cover. Read and comment freely; never merge or run a pipeline that applies without explicit human approval.
+- `gcloud`: `asset search-all-resources` to inventory what exists,
+  `<service> describe/list` to compare against state, `projects get-iam-policy`
+  for IAM reality, `recommender recommendations list` for cost and security
+  findings. Check that an `alpha`/`beta` component is installed first.
+- `glab`: `ci lint` on `.gitlab-ci.yml`, `ci list` / `ci trace` to read plan-job
+  output, `mr diff` / `mr view` to review an infra MR. Never merge, never run a
+  pipeline that applies.
 
 ## Output format
 
