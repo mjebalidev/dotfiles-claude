@@ -1,42 +1,72 @@
 # dotfiles-claude
 
-Versioned configuration for [Claude Code](https://claude.com/claude-code) — my personal
-**agents**, **skills**, and a client-engagement **CLAUDE.md template**.
+My [Claude Code](https://claude.com/claude-code) configuration, versioned:
+global instructions, subagents, skills, a slash command, a git hook, and an
+engagement template. This repo is the source of truth; `~/.claude` points here.
 
-This repo is the single source of truth. On each machine, `~/.claude/agents` and
-`~/.claude/skills` are **symlinks** into this repo, so editing files here (and committing)
-is all that's needed to version-control my Claude Code setup. Nothing sensitive from
-`~/.claude` (credentials, projects, history, settings) lives here or is ever committed.
+## How it reaches a session
+
+```mermaid
+flowchart LR
+    subgraph repo["dotfiles-claude (git)"]
+        md["home/CLAUDE.md"]
+        frag["home/settings.attribution.json"]
+        ag["agents/"]
+        sk["skills/"]
+        cmd["commands/"]
+        gh["githooks/commit-msg"]
+    end
+
+    subgraph home["~/.claude"]
+        hmd["CLAUDE.md"]
+        hset["settings.json"]
+        hag["agents/"]
+        hsk["skills/"]
+        hcmd["commands/"]
+    end
+
+    md -->|symlink| hmd
+    ag -->|symlink| hag
+    sk -->|symlink| hsk
+    cmd -->|symlink| hcmd
+    frag -->|"merged by install.sh"| hset
+    gh -->|"git config --global core.hooksPath"| git["every git commit"]
+
+    hmd --> sess["Claude Code session"]
+    hset --> sess
+    hag --> sess
+    hsk --> sess
+    hcmd --> sess
+    sess --> git
+```
+
+Editing a file here changes the next session. No copy step, no reinstall.
+`settings.json` is the exception: it stays a real file because it also holds
+machine- and client-specific state, so `install.sh` merges the attribution
+fragment into it and leaves every other key alone.
 
 ## Contents
 
-```
-agents/                 # 7 subagent definitions (*.md)
-skills/                 # skill folders, each with a SKILL.md
-templates/
-  CLAUDE.md.template    # engagement CLAUDE.md template (copy into client repos)
-install.sh              # idempotent bootstrap: symlinks ~/.claude/{agents,skills} here
-```
+| Path | What |
+|---|---|
+| `home/CLAUDE.md` | Global instructions: communication, code, Angular commits, docs |
+| `home/settings.attribution.json` | Fragment that blanks commit and PR attribution |
+| `agents/` | 7 subagents: IaC, Kubernetes/GitOps, code review, incidents, SRE audit, AI platform, pre-sales |
+| `skills/` | 4 skills: `humanizer`, `doc-writer`, `sre-audit`, `presales-deliverables` |
+| `commands/commit.md` | `/commit` — reads the diff, splits by subject, writes Angular messages |
+| `githooks/commit-msg` | Strips AI trailers, then enforces the Angular header |
+| `templates/CLAUDE.md.template` | Engagement CLAUDE.md to copy into a client repo |
+| `install.sh` | Idempotent deployment |
 
-## Tooling conventions
+Agents declare Claude Code tools in `tools:`; external CLIs run through `Bash`
+and each agent lists the subcommands it may use. `gcloud`, `glab`, `kubectl`,
+`helm`, `flux` and `argocd` are read-only everywhere: mutations go through IaC
+or CI, never through an ad-hoc call. `presales-architect` has no `Bash` at all.
 
-The agents' `tools:` frontmatter lists **Claude Code** tools (Read, Grep, Bash, …).
-External CLIs are driven through `Bash`, and the agents that need them document the
-commands they may use in a `## Tooling` section:
+## Install
 
-| CLI | Agents | Posture |
-| --- | --- | --- |
-| `gcloud` | iac-engineer, k8s-gitops-engineer, ai-platform-engineer, incident-responder, sre-auditor, code-reviewer | read-only (`describe`/`list`/`logging read`/`asset`/`recommender`); mutations go through IaC |
-| `glab` | all Bash-enabled agents | read/review (`mr diff`, `mr view`, `ci list`, `ci trace`, `ci lint`, `api`); never `mr merge`, `ci run/retry` |
-| `kubectl`, `helm`, `flux`, `argocd` | k8s-gitops-engineer, incident-responder, sre-auditor | get/describe by default; mutating commands are proposed, not run |
-
-`presales-architect` deliberately has no `Bash`: it writes deliverables from material
-already in context, so it needs no cloud or Git access.
-
-## Bootstrap on a new machine
-
-Requires WSL2/Linux with the repo on the **Linux filesystem** (under `~`, never `/mnt/c`)
-and an SSH `private` host alias for GitHub (see below).
+Requires a Linux or WSL2 filesystem (under `~`, never `/mnt/c`), `git`,
+`python3`, and an SSH `private` host alias.
 
 ```sh
 git clone git@private:mjebalidev/dotfiles-claude.git ~/Private/dotfiles-claude
@@ -44,17 +74,37 @@ cd ~/Private/dotfiles-claude
 ./install.sh
 ```
 
-`install.sh` is idempotent: if `~/.claude/agents` or `~/.claude/skills` already exist as
-real directories, they are backed up to `*.bak.<n>` before the symlink is created. Running
-it again when the correct symlinks are already in place is a no-op.
+Then start a fresh session and run `/agents`.
 
-After bootstrapping, start a fresh Claude Code session and run `/agents` to confirm the
-agents are picked up.
+| Flag | Effect |
+|---|---|
+| *(none)* | Links `agents`, `skills`, `commands`, `CLAUDE.md`; merges settings; sets `core.hooksPath` |
+| `--no-git-hooks` | Same, without touching `core.hooksPath` |
+
+Re-running is a no-op when everything is already in place. Anything in the way
+is moved to `*.bak.<n>`; nothing is deleted.
+
+## The commit hook
+
+`core.hooksPath` is global, so the hook would otherwise hide each repo's own
+`.git/hooks/commit-msg`. It runs that local hook first and honours its exit
+code. Repos that set `core.hooksPath` themselves, which is what Husky does,
+override the global value and never reach this hook — use `commitlint` with
+`@commitlint/config-angular` there instead.
+
+The hook removes `Co-Authored-By: Claude`, `Generated with … Claude` and
+`Claude-Session:` lines, then checks the subject against:
+
+```
+^(build|chore|ci|docs|feat|fix|perf|refactor|test|revert)(\([a-z0-9._/-]+\))?!?: [^A-Z].{0,70}[^.]$
+```
+
+`Merge`, `Revert "`, `fixup!` and `squash!` subjects are exempt.
 
 ## SSH `private` host alias
 
-The remote uses the `private` alias so the exact key/account is decided by `~/.ssh/config`.
-Example block (ed25519):
+The remote uses the `private` alias so `~/.ssh/config` decides which key and
+account are used.
 
 ```
 Host private
@@ -64,12 +114,8 @@ Host private
   IdentitiesOnly yes
 ```
 
-## Editing
+## What is not here
 
-Edit files under this repo directly (the `~/.claude` symlinks point here), then commit:
-
-```sh
-cd ~/Private/dotfiles-claude
-git add -A && git commit -m "Update agents/skills"
-git push
-```
+Nothing from `~/.claude` that is sensitive or machine-local: credentials,
+`projects/`, `history.jsonl`, `sessions/`, and the rest of `settings.json`
+including the `autoMode` environment block.
