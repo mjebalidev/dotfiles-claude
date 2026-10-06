@@ -1,7 +1,8 @@
 # CLAUDE.md — [Client / Engagement name]
 
 > Engagement template. Copy to the root of the client repo, fill in the sections,
-> delete what does not apply. Goal: stay under ~150 lines.
+> delete what does not apply. Target: 60 lines. The global ~/.claude/CLAUDE.md
+> already covers communication, code, commits and documentation; do not repeat it.
 
 ## Context
 - Client: [name, industry]
@@ -29,18 +30,14 @@
 - [Forbidden / legacy directories not to touch]
 - Secrets: never in plaintext — [Secret Manager / External Secrets / SOPS]
 
-## Agent delegation — IMPORTANT
-Delegate systematically according to these rules:
-- Any work on .tf/.hcl files, modules or state → `iac-engineer` agent
-- Any work on K8s manifests, Helm charts, Argo CD/Flux → `k8s-gitops-engineer` agent
-- Any review of Python/TypeScript application code, and systematically after writing or modifying code → `code-reviewer` agent
-- Any production incident, alert, error or broken deployment → `incident-responder` agent
-- Any reliability / production-readiness assessment → `sre-auditor` agent
-- Any design or review of an LLM/RAG/agent system → `ai-platform-engineer` agent
-- Any client deliverable (proposal, report, RFP response) → `presales-architect` agent
+## Delegation
+
+Agent routing lives in the global `~/.claude/CLAUDE.md`. List here only what is
+specific to this engagement, for example a client agent or a forbidden path.
 
 ## Guardrails
-- Never run `apply`, mutating `kubectl`, rollbacks or restarts without explicit human approval
-- `gcloud` and `glab` are read-only tools here: no resource mutations, no `glab mr merge`, no `glab ci run/retry` on deploy pipelines
-- Always present the plan/diff before any infrastructure change
-- Client data: never copy secrets, dumps or personal data into the conversation
+
+- Never run `apply`, a mutating `kubectl`, a rollback or a restart without
+  explicit human approval. Always present the plan or diff first.
+- Client data: never copy secrets, dumps or personal data into the conversation.
+- [Anything else this client requires]
