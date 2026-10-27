@@ -43,7 +43,7 @@ drift() {
   DRIFT=1
 }
 
-mkdir -p "${CLAUDE_DIR}"
+[ "${CHECK}" -eq 1 ] || mkdir -p "${CLAUDE_DIR}"
 
 # Next free ${path}.bak.<n>.
 backup_path() {
@@ -108,8 +108,11 @@ unlink_obsolete commands
 # settings.json: merge the fragment, keep every other key untouched. Lists are
 # unioned, fragment entries first, so permission rules saved from a prompt and
 # auto mode entries written by /auto-mode-setup survive. Removing an entry from
-# the fragment therefore does not remove it from settings.json.
-[ -f "${SETTINGS}" ] || echo '{}' > "${SETTINGS}"
+# the fragment therefore does not remove it from settings.json: delete it there
+# by hand. Scalars are fragment-owned and overwritten on every run.
+if [ ! -f "${SETTINGS}" ]; then
+  if [ "${CHECK}" -eq 1 ]; then drift "${SETTINGS} does not exist"; else echo '{}' > "${SETTINGS}"; fi
+fi
 
 # Exit 0 merged (or, with "check", in sync), 3 nothing to do (or drift).
 merge_settings() {
@@ -150,6 +153,7 @@ PY
 }
 
 if [ "${CHECK}" -eq 1 ]; then
+  [ -f "${SETTINGS}" ] || exit 1
   status=0
   merge_settings "${SETTINGS}" "${FRAGMENT}" check || status=$?
   case "${status}" in
