@@ -26,8 +26,9 @@ grep -v -i -E \
   -e '^[[:space:]]*(🤖[[:space:]]*)?Generated with .*Claude' \
   -e '^[[:space:]]*Claude-Session:' \
   "${MSG_FILE}" > "${tmp}" || true
-# Trailing blank lines, in reverse then back.
-tac "${tmp}" | awk 'NF {found = 1} found' | tac > "${MSG_FILE}"
+# Trailing blank lines: buffer blanks, flush them only before a non-blank line
+# (portable: macOS has no tac).
+awk 'NF {for (; blank > 0; blank--) print ""; print; next} {blank++}' "${tmp}" > "${MSG_FILE}"
 
 # 2. Subject = first line that is neither blank nor a git comment.
 subject="$(grep -v -E '^[[:space:]]*#' "${MSG_FILE}" | grep -m1 -E '[^[:space:]]' || true)"
