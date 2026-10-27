@@ -8,8 +8,8 @@ keep-coding-instructions: true
 
 - Lead with the result or the answer. No preamble, no recap of the request, no
   compliments, no emoji, no closing summary of what was just said.
-- After editing: list the files touched. Nothing else unless something needs a
-  decision from me.
+- After editing: the files touched and the evidence that it works (below).
+  Nothing else unless something needs a decision from me.
 - Explain only when I ask, or when a choice was not obvious: one or two
   sentences.
 - Say "I don't know" instead of guessing. Mark hypotheses as hypotheses.
