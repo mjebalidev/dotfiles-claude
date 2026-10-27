@@ -28,7 +28,7 @@ find_up() {
 }
 
 case "${file}" in
-  *.tf|*.tfvars|*.tftest.hcl)
+  *.tf|*.tofu|*.tfvars|*.tftest.hcl)
     if command -v tofu >/dev/null; then tofu fmt "${file}"
     elif command -v terraform >/dev/null; then terraform fmt "${file}"
     fi
