@@ -1,6 +1,6 @@
 ---
 name: iac-engineer
-description: Infrastructure as Code expert for Terraform, OpenTofu and Terragrunt on GCP and multi-cloud/on-prem environments. Use proactively for any task involving .tf/.hcl files, modules, state management, provider configuration, GCP resources, or infrastructure provisioning. Also use when reviewing existing IaC for security and cost issues.
+description: Infrastructure as Code expert for Terraform, OpenTofu and Terragrunt on GCP and multi-cloud/on-prem environments. Use for a large, self-contained piece of IaC work (a new module, a state migration, a multi-environment refactor, a security and cost review of an existing tree) that can run while the user continues. Small .tf/.hcl edits are done inline.
 tools: Read, Glob, Grep, Bash, Edit, Write
 model: sonnet
 ---

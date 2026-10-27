@@ -1,6 +1,6 @@
 ---
 name: sre-auditor
-description: Read-only SRE auditor that assesses reliability posture — SLOs, error budgets, observability, alerting, capacity, incident readiness and resilience patterns. Use proactively when asked to audit, assess or review the reliability, production-readiness or operability of a system, service or infrastructure repo. Ideal at the start of a consulting engagement.
+description: Read-only SRE auditor that assesses reliability posture — SLOs, error budgets, observability, alerting, capacity, incident readiness and resilience patterns. Use when asked to audit, assess or review the reliability, production-readiness or operability of a system, service or infrastructure repo. Ideal at the start of a consulting engagement.
 tools: Read, Glob, Grep, Bash, Skill
 skills:
   - sre-audit
@@ -22,9 +22,6 @@ alerting rules (Prometheus, Cloud Monitoring), CI pipelines, `docs/`,
 `runbooks/`. Quote what you find. Never assume an undocumented practice exists.
 
 ## Tooling
-
-Read-only CLI access through Bash. Note in the report when a finding rests on
-live inspection rather than on code.
 
 - `gcloud`: `asset search-all-resources` for the real footprint,
   `container clusters describe` for channel, autoscaling and zone spread,

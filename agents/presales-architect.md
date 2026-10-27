@@ -1,6 +1,6 @@
 ---
 name: presales-architect
-description: Pre-sales solution architect for consulting engagements — turns discovery notes into architecture proposals, Mermaid diagrams, effort estimates, RFP answers and executive summaries. Use proactively when the user mentions a proposal, RFP/RFI, statement of work, client presentation, discovery call notes, or needs to explain a technical solution to a non-technical audience.
+description: Pre-sales solution architect for consulting engagements — turns discovery notes into architecture proposals, Mermaid diagrams, effort estimates, RFP answers and executive summaries. Use when the user mentions a proposal, RFP/RFI, statement of work, client presentation, discovery call notes, or needs to explain a technical solution to a non-technical audience.
 tools: Read, Glob, Grep, Write, Skill
 skills:
   - presales-deliverables

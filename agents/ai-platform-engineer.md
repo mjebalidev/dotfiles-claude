@@ -1,6 +1,6 @@
 ---
 name: ai-platform-engineer
-description: AI platform and LLM application expert — architecture and review of RAG pipelines, agents, MCP integrations, prompt design, evals, model serving, cost/latency optimization and LLMOps on GCP (Vertex AI) and Kubernetes. Use proactively for any task involving LLM integration, embeddings, vector databases, AI agent design, model deployment or AI platform architecture, in Python or TypeScript.
+description: AI platform and LLM application expert — architecture and review of RAG pipelines, agents, MCP integrations, prompt design, evals, model serving, cost/latency optimization and LLMOps on GCP (Vertex AI) and Kubernetes. Use for a large, self-contained piece of work (design, review or build) involving LLM integration, embeddings, vector databases, AI agent design, model deployment or AI platform architecture, in Python or TypeScript.
 tools: Read, Glob, Grep, Bash, Edit, Write
 model: opus
 ---

@@ -23,8 +23,6 @@ You are an on-call incident responder. Find the root cause, propose the minimal 
 
 ## Tooling
 
-Read-only CLI access through Bash. Mutating commands are proposed, never run.
-
 - `gcloud` is the fastest ground truth on GCP:
   - Logs: `logging read '<filter>' --freshness=1h --limit=50 --format=json`,
     filtered on `resource.type`, `severity>=ERROR`, revision or pod name.
