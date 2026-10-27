@@ -1,0 +1,102 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "outputStyle": "Pro",
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  },
+  "enabledPlugins": {
+    "dotfiles@dotfiles-claude": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "vercel@claude-plugins-official": false,
+    "voltagent-infra@voltagent-subagents": false
+  },
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Read(**/*.tfstate)",
+      "Read(**/*.tfstate.backup)",
+      "Read(~/.ssh/id_*)",
+      "Read(~/.ssh/private)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.config/glab-cli/config.yml)",
+      "Read(~/.vault-token)"
+    ],
+    "ask": [
+      "Bash(kubectl apply *)",
+      "Bash(kubectl * apply *)",
+      "Bash(kubectl create *)",
+      "Bash(kubectl * create *)",
+      "Bash(kubectl delete *)",
+      "Bash(kubectl * delete *)",
+      "Bash(kubectl patch *)",
+      "Bash(kubectl * patch *)",
+      "Bash(kubectl replace *)",
+      "Bash(kubectl * replace *)",
+      "Bash(kubectl edit *)",
+      "Bash(kubectl * edit *)",
+      "Bash(kubectl scale *)",
+      "Bash(kubectl * scale *)",
+      "Bash(kubectl drain *)",
+      "Bash(kubectl * drain *)",
+      "Bash(kubectl * rollout restart *)",
+      "Bash(kubectl rollout restart *)",
+      "Bash(kubectl * rollout undo *)",
+      "Bash(kubectl rollout undo *)",
+      "Bash(helm install *)",
+      "Bash(helm upgrade *)",
+      "Bash(helm uninstall *)",
+      "Bash(helm rollback *)",
+      "Bash(helm * install *)",
+      "Bash(helm * upgrade *)",
+      "Bash(helm * uninstall *)",
+      "Bash(helm * rollback *)",
+      "Bash(tofu *apply*)",
+      "Bash(tofu *destroy*)",
+      "Bash(tofu *import *)",
+      "Bash(tofu *state rm*)",
+      "Bash(tofu *state mv*)",
+      "Bash(terraform *apply*)",
+      "Bash(terraform *destroy*)",
+      "Bash(terraform *import *)",
+      "Bash(terraform *state rm*)",
+      "Bash(terraform *state mv*)",
+      "Bash(terragrunt *apply*)",
+      "Bash(terragrunt *destroy*)",
+      "Bash(terragrunt *state rm*)",
+      "Bash(gcloud * create *)",
+      "Bash(gcloud * delete *)",
+      "Bash(gcloud * update *)",
+      "Bash(gcloud * deploy *)",
+      "Bash(gcloud * resize *)",
+      "Bash(gcloud *-iam-policy*)",
+      "Bash(gcloud auth print-access-token*)",
+      "Bash(glab mr merge *)",
+      "Bash(glab ci run *)",
+      "Bash(glab * delete *)",
+      "Bash(flux suspend *)",
+      "Bash(flux resume *)",
+      "Bash(flux delete *)",
+      "Bash(argocd app sync *)",
+      "Bash(argocd app delete *)",
+      "Bash(vault write *)",
+      "Bash(vault delete *)",
+      "Bash(vault kv put *)",
+      "Bash(vault kv patch *)",
+      "Bash(vault kv delete *)"
+    ]
+  },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Cloud: Google Cloud through gcloud; Kubernetes through kubectl, helm, flux and argocd; IaC with OpenTofu and Terragrunt; source control and CI on GitLab through glab; secrets in HashiCorp Vault",
+      "Changes to cloud resources, clusters and GitLab are meant to go through IaC or CI: a mutating CLI call outside that path is an exception the user approves"
+    ]
+  }
+}

@@ -2,28 +2,46 @@
 #
 # install.sh — deploy this repo into ~/.claude and ~/.gitconfig.
 #
-#   agents/ skills/ commands/   symlinked into ~/.claude/
-#   home/CLAUDE.md              symlinked to ~/.claude/CLAUDE.md
-#   home/settings.attribution.json  merged into ~/.claude/settings.json
-#   githooks/                   wired through git config --global core.hooksPath
+#   agents/ skills/ output-styles/   symlinked into ~/.claude/
+#   home/CLAUDE.md                   symlinked to ~/.claude/CLAUDE.md
+#   home/statusline.sh               symlinked to ~/.claude/statusline.sh
+#   home/settings.base.json          merged into ~/.claude/settings.json
+#   plugins/dotfiles                 installed from this repo as a marketplace
+#   githooks/                        wired through git config --global core.hooksPath
 #
 # Idempotent. Nothing is deleted: anything in the way is moved to *.bak.<n>,
 # and settings.json is copied to settings.json.bak.<n> before it is merged.
+# Links are rebuilt from wherever the repo sits now, so re-running after a move
+# (another machine, /home -> /Users) repairs them.
 #
-# Usage: ./install.sh [--no-git-hooks]
+# Usage: ./install.sh [--no-git-hooks] [--check]
+#   --check   report drift between this repo and ~/.claude, change nothing;
+#             exits 1 when anything differs
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
+FRAGMENT="${REPO_DIR}/home/settings.base.json"
+SETTINGS="${CLAUDE_DIR}/settings.json"
+MARKETPLACE="dotfiles-claude"
+PLUGIN="dotfiles@${MARKETPLACE}"
 WIRE_HOOKS=1
+CHECK=0
+DRIFT=0
 
 for arg in "$@"; do
   case "${arg}" in
     --no-git-hooks) WIRE_HOOKS=0 ;;
+    --check) CHECK=1 ;;
     *) echo "unknown option: ${arg}" >&2; exit 2 ;;
   esac
 done
+
+drift() {
+  echo "DRIFT: $*"
+  DRIFT=1
+}
 
 mkdir -p "${CLAUDE_DIR}"
 
@@ -52,6 +70,10 @@ link_one() {
     echo "ok: ${link}"
     return 0
   fi
+  if [ "${CHECK}" -eq 1 ]; then
+    drift "${link} does not point to ${src}"
+    return 0
+  fi
   if [ -e "${link}" ] || [ -L "${link}" ]; then
     backup "${link}"
   fi
@@ -59,22 +81,42 @@ link_one() {
   echo "linked: ${link} -> ${src}"
 }
 
+# A link this repo used to create and no longer ships. Removed only when it
+# still points into a dotfiles-claude checkout, so a user's own file survives.
+unlink_obsolete() {
+  local link="${CLAUDE_DIR}/$1"
+  [ -L "${link}" ] || return 0
+  case "$(readlink "${link}")" in
+    */dotfiles-claude/"$1") ;;
+    *) return 0 ;;
+  esac
+  if [ "${CHECK}" -eq 1 ]; then
+    drift "${link} is obsolete"
+    return 0
+  fi
+  rm "${link}"
+  echo "removed obsolete link: ${link}"
+}
+
 link_one agents
 link_one skills
-link_one commands
+link_one output-styles
 link_one home/CLAUDE.md CLAUDE.md
+link_one home/statusline.sh statusline.sh
+unlink_obsolete commands
 
-# settings.json: merge the fragment, keep every other key untouched.
-SETTINGS="${CLAUDE_DIR}/settings.json"
-FRAGMENT="${REPO_DIR}/home/settings.attribution.json"
+# settings.json: merge the fragment, keep every other key untouched. Lists are
+# unioned, fragment entries first, so permission rules saved from a prompt and
+# auto mode entries written by /auto-mode-setup survive. Removing an entry from
+# the fragment therefore does not remove it from settings.json.
 [ -f "${SETTINGS}" ] || echo '{}' > "${SETTINGS}"
 
-# Exit 0 merged, 3 nothing to do, anything else is a failure.
+# Exit 0 merged (or, with "check", in sync), 3 nothing to do (or drift).
 merge_settings() {
-  python3 - "$1" "$2" <<'PY'
+  python3 - "$@" <<'PY'
 import json, sys
 
-settings_path, fragment_path = sys.argv[1], sys.argv[2]
+settings_path, fragment_path, mode = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(settings_path) as fh:
     settings = json.load(fh)
 with open(fragment_path) as fh:
@@ -85,6 +127,8 @@ def merge(dst, src):
     for key, value in src.items():
         if isinstance(value, dict) and isinstance(dst.get(key), dict):
             merge(dst[key], value)
+        elif isinstance(value, list) and isinstance(dst.get(key), list):
+            dst[key] = value + [x for x in dst[key] if x not in value]
         else:
             dst[key] = value
 
@@ -92,8 +136,11 @@ def merge(dst, src):
 before = json.dumps(settings, sort_keys=True)
 merge(settings, fragment)
 settings.pop("includeCoAuthoredBy", None)  # superseded by attribution
+changed = json.dumps(settings, sort_keys=True) != before
 
-if json.dumps(settings, sort_keys=True) == before:
+if mode == "check":
+    sys.exit(3 if changed else 0)
+if not changed:
     sys.exit(3)
 
 with open(settings_path, "w") as fh:
@@ -102,44 +149,97 @@ with open(settings_path, "w") as fh:
 PY
 }
 
-scratch="$(mktemp)"
-cp "${SETTINGS}" "${scratch}"
-status=0
-merge_settings "${scratch}" "${FRAGMENT}" || status=$?
-case "${status}" in
-  0)
-    settings_backup="$(backup_path "${SETTINGS}")"
-    cp -p "${SETTINGS}" "${settings_backup}"
-    # Write through the existing file so its mode and owner survive.
-    cat "${scratch}" > "${SETTINGS}"
-    rm -f "${scratch}"
-    echo "backed up: ${SETTINGS} -> ${settings_backup}"
-    echo "merged: ${SETTINGS} <- home/settings.attribution.json"
-    ;;
-  3)
-    rm -f "${scratch}"
-    echo "ok: ${SETTINGS}"
-    ;;
-  *)
-    rm -f "${scratch}"
-    echo "ERROR: settings merge failed, ${SETTINGS} left untouched" >&2
-    exit 1
-    ;;
-esac
+if [ "${CHECK}" -eq 1 ]; then
+  status=0
+  merge_settings "${SETTINGS}" "${FRAGMENT}" check || status=$?
+  case "${status}" in
+    0) echo "ok: ${SETTINGS}" ;;
+    3) drift "${SETTINGS} is missing entries from home/settings.base.json" ;;
+    *) echo "ERROR: cannot read ${SETTINGS}" >&2; exit 1 ;;
+  esac
+else
+  scratch="$(mktemp)"
+  cp "${SETTINGS}" "${scratch}"
+  status=0
+  merge_settings "${scratch}" "${FRAGMENT}" write || status=$?
+  case "${status}" in
+    0)
+      settings_backup="$(backup_path "${SETTINGS}")"
+      cp -p "${SETTINGS}" "${settings_backup}"
+      # Write through the existing file so its mode and owner survive.
+      cat "${scratch}" > "${SETTINGS}"
+      rm -f "${scratch}"
+      echo "backed up: ${SETTINGS} -> ${settings_backup}"
+      echo "merged: ${SETTINGS} <- home/settings.base.json"
+      ;;
+    3)
+      rm -f "${scratch}"
+      echo "ok: ${SETTINGS}"
+      ;;
+    *)
+      rm -f "${scratch}"
+      echo "ERROR: settings merge failed, ${SETTINGS} left untouched" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+# Plugin: this repo is its own marketplace. Re-registered when the recorded
+# path is not this checkout.
+if command -v claude >/dev/null; then
+  registered="$(claude plugin marketplace list --json |
+    python3 -c 'import json,sys; m=[x for x in json.load(sys.stdin) if x["name"]==sys.argv[1]]; print(m[0].get("path","") if m else "-")' "${MARKETPLACE}")"
+  installed="$(claude plugin list --json |
+    python3 -c 'import json,sys; print(any(p.get("id")==sys.argv[1] for p in json.load(sys.stdin)))' "${PLUGIN}")"
+
+  if [ "${registered}" = "${REPO_DIR}" ] && [ "${installed}" = "True" ]; then
+    echo "ok: plugin ${PLUGIN}"
+  elif [ "${CHECK}" -eq 1 ]; then
+    drift "plugin ${PLUGIN} is not installed from ${REPO_DIR}"
+  else
+    [ "${registered}" = "-" ] || claude plugin marketplace remove "${MARKETPLACE}"
+    claude plugin marketplace add "${REPO_DIR}"
+    claude plugin install "${PLUGIN}"
+  fi
+
+  # Every other plugin the fragment enables, from marketplaces already known.
+  missing="$(claude plugin list --json | python3 -c '
+import json, sys
+installed = {p["id"] for p in json.load(sys.stdin)}
+with open(sys.argv[1]) as fh:
+    wanted = json.load(fh).get("enabledPlugins", {})
+print(" ".join(k for k, on in wanted.items() if on and k not in installed and k != sys.argv[2]))
+' "${FRAGMENT}" "${PLUGIN}")"
+  for p in ${missing}; do
+    if [ "${CHECK}" -eq 1 ]; then
+      drift "plugin ${p} is enabled but not installed"
+    else
+      claude plugin install "${p}"
+    fi
+  done
+else
+  echo "WARNING: claude not on PATH; plugin ${PLUGIN} not checked." >&2
+fi
 
 # Git hooks.
 if [ "${WIRE_HOOKS}" -eq 1 ]; then
-  chmod +x "${REPO_DIR}"/githooks/*
   current="$(git config --global core.hooksPath || true)"
-  if [ -z "${current}" ]; then
+  if [ "${current}" = "${REPO_DIR}/githooks" ]; then
+    echo "ok: core.hooksPath"
+  elif [ "${CHECK}" -eq 1 ]; then
+    drift "core.hooksPath is '${current}', expected ${REPO_DIR}/githooks"
+  elif [ -z "${current}" ]; then
+    chmod +x "${REPO_DIR}"/githooks/*
     git config --global core.hooksPath "${REPO_DIR}/githooks"
     echo "set: core.hooksPath -> ${REPO_DIR}/githooks"
-  elif [ "${current}" = "${REPO_DIR}/githooks" ]; then
-    echo "ok: core.hooksPath"
   else
     echo "WARNING: core.hooksPath is already ${current}; left as is." >&2
   fi
-  echo "note: repos that set core.hooksPath themselves (Husky) bypass this hook."
+fi
+
+if [ "${CHECK}" -eq 1 ]; then
+  [ "${DRIFT}" -eq 0 ] && echo "In sync."
+  exit "${DRIFT}"
 fi
 
 echo
