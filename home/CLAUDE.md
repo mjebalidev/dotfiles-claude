@@ -37,13 +37,8 @@ lists the files.
 
 ## Documentation
 
-- README answers what / why / getting started in under 5 commands. Everything
-  else goes in `docs/`.
-- Mermaid instead of a paragraph for architecture, flows, sequences and states.
-- Tables for configuration and environment variables.
-- Examples must be runnable, copy-paste safe.
-- No filler sections ("Overview", "Key Takeaways", "Conclusion").
-- Details: the `doc-writer` skill.
+README: what, why, getting started in under 5 commands; the rest in `docs/`.
+Everything else: the `doc-writer` skill.
 
 ## Tone
 

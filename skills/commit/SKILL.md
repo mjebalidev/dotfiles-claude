@@ -2,7 +2,7 @@
 name: commit
 description: Stage and commit the working tree as Angular commits, split by subject
 disable-model-invocation: true
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git log:*)
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git log:*), Bash(git apply:*), Bash(git restore:*)
 ---
 
 Commit the current work.
@@ -17,26 +17,20 @@ Commit the current work.
 
 One commit per logical change. A refactor and the feature built on it are two
 commits. A file touched for two reasons belongs in two commits: stage hunks,
-not files. Never bundle unrelated changes to save a round trip.
+not files (`git apply --cached` with the hunk). Never bundle unrelated
+changes to save a round trip.
 
 If the working tree holds a single change, make a single commit. Do not invent
 splits.
 
 ## Write
 
-```
-<type>(<scope>): <subject>
+Format rules: `## Commits` in the global CLAUDE.md. On top of them:
 
-<body>
-```
-
-- Types: `build` `chore` `ci` `docs` `feat` `fix` `perf` `refactor` `test` `revert`.
-- Subject: imperative, lowercase first letter, no trailing period, 72 chars max.
-- Scope: taken from the paths touched, lowercase, matching the scopes in the log.
+- When a scope fits, take it from the paths touched and match the scopes in
+  the log.
 - Body: why the change was needed. Skip it when the subject already says
-  everything. Never list the files — the diff does that.
-- Breaking change: `!` after the scope and a `BREAKING CHANGE:` footer.
-- No AI attribution of any kind. No `--no-verify`.
+  everything. Never list the files.
 
 ## Report
 

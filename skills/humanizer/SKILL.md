@@ -84,15 +84,12 @@ write; keep it that way when you edit it.
 - Commit subject: `add user prefs`, not `implement comprehensive user
   preferences management system`. The Angular rules in the global CLAUDE.md
   apply; this is about the words inside them.
-- PR description: the user-visible change and the why. The diff lists the files.
 - No chat residue in commits, PRs or comments: "Great question", "Let me break
   this down", "Hope this helps", "You're absolutely right".
 - Contractions and fragments are fine in commits and chat. Full formal prose
   there reads as machine output.
 - No closers inviting engagement ("Curious what others think"). State the ask:
   "Flag anything I missed".
-- Reporting finished work: lead with the result and the evidence. No bare
-  "Done.", no message built from `Label:` teasers, no "just say the word".
 - Code: no blank line between every statement, no helper for a two-line
   operation, no signature exploded across five lines.
 
