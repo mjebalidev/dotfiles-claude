@@ -2,9 +2,10 @@
 
 > Engagement template. Copy to the root of the client repo as `AGENTS.md`, fill
 > in the sections, delete what does not apply. Target: 60 lines. AGENTS.md is
-> read by GitLab Duo, Codex and Cursor; Claude Code reads it through a one-line
-> `CLAUDE.md` containing `@AGENTS.md`. The global ~/.claude/CLAUDE.md already
-> covers code, commits and documentation; do not repeat it.
+> read by GitLab Duo, Codex, Cursor and Claude Code (2.1.277+, as long as the
+> repo has no CLAUDE.md; if it has one, add `@AGENTS.md` to it). Do not repeat
+> the global ~/.claude/CLAUDE.md (code, commits, docs). Keep Guardrails: the
+> other tools see neither that file nor the permission rules.
 
 ## Context
 - Client: [name, industry]
