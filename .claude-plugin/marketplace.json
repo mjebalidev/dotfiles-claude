@@ -1,0 +1,14 @@
+{
+  "name": "dotfiles-claude",
+  "description": "Personal Claude Code plugins",
+  "owner": {
+    "name": "Mehdi Jebali"
+  },
+  "plugins": [
+    {
+      "name": "dotfiles",
+      "source": "./plugins/dotfiles",
+      "description": "Language servers for Terraform and YAML, format-on-edit for canonical formatters"
+    }
+  ]
+}
