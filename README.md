@@ -1,7 +1,8 @@
 # dotfiles-claude
 
 My [Claude Code](https://claude.com/claude-code) configuration, versioned:
-global instructions, subagents, skills, a slash command, a git hook, and an
+global instructions, an output style, subagents, skills, a plugin with language
+servers and a format hook, permission rules, a status line, a git hook, and an
 engagement template. This repo is the source of truth; `~/.claude` points here.
 
 ## How it reaches a session
@@ -10,79 +11,103 @@ engagement template. This repo is the source of truth; `~/.claude` points here.
 flowchart LR
     subgraph repo["dotfiles-claude (git)"]
         md["home/CLAUDE.md"]
-        frag["home/settings.attribution.json"]
+        sl["home/statusline.sh"]
+        frag["home/settings.base.json"]
+        os["output-styles/"]
         ag["agents/"]
         sk["skills/"]
-        cmd["commands/"]
+        pl["plugins/dotfiles"]
         gh["githooks/commit-msg"]
     end
 
     subgraph home["~/.claude"]
         hmd["CLAUDE.md"]
+        hsl["statusline.sh"]
         hset["settings.json"]
+        hos["output-styles/"]
         hag["agents/"]
         hsk["skills/"]
-        hcmd["commands/"]
+        hpl["plugins/"]
     end
 
     md -->|symlink| hmd
+    sl -->|symlink| hsl
+    os -->|symlink| hos
     ag -->|symlink| hag
     sk -->|symlink| hsk
-    cmd -->|symlink| hcmd
     frag -->|"merged by install.sh"| hset
+    pl -->|"local marketplace"| hpl
     gh -->|"git config --global core.hooksPath"| git["every git commit"]
 
-    hmd --> sess["Claude Code session"]
-    hset --> sess
-    hag --> sess
-    hsk --> sess
-    hcmd --> sess
+    home --> sess["Claude Code session"]
     sess --> git
 ```
 
-Editing a file here changes the next session. No copy step, no reinstall.
-`settings.json` is the exception: it stays a real file because it also holds
-machine- and client-specific state, so `install.sh` merges the attribution
-fragment into it and leaves every other key alone.
+Editing a linked file changes the next session. No copy step, no reinstall.
+`settings.json` stays a real file because it also holds machine- and
+client-specific state (the `autoMode` entries `/auto-mode-setup` writes,
+permissions approved from a prompt), so `install.sh` merges the fragment into
+it: lists are unioned, every other key is left alone. Plugin edits apply after
+`/reload-plugins`.
 
 ## Contents
 
 | Path | What |
 |---|---|
-| `home/CLAUDE.md` | Global instructions: communication, code, Angular commits, docs |
-| `home/settings.attribution.json` | Fragment that blanks commit and PR attribution |
+| `home/CLAUDE.md` | Global instructions: code, Angular commits, docs, tone, tools, delegation |
+| `output-styles/pro.md` | `Pro` output style: result first, no filler, evidence for "done" |
+| `home/settings.base.json` | Attribution off, output style, status line, plugins, permission rules, auto mode environment |
+| `home/statusline.sh` | Model · effort · context │ branch │ MR │ gcloud project │ kube context |
 | `agents/` | 7 subagents: IaC, Kubernetes/GitOps, code review, incidents, SRE audit, AI platform, pre-sales |
-| `skills/` | 4 skills: `humanizer`, `doc-writer`, `sre-audit`, `presales-deliverables` |
-| `commands/commit.md` | `/commit` — reads the diff, splits by subject, writes Angular messages |
+| `skills/` | `commit`, `humanizer`, `doc-writer`, `sre-audit`, `presales-deliverables` |
+| `plugins/dotfiles` | `terraform-ls` and `yaml-language-server`, format-on-edit hook |
 | `githooks/commit-msg` | Strips AI trailers, then enforces the Angular header |
-| `templates/CLAUDE.md.template` | Engagement CLAUDE.md to copy into a client repo |
-| `install.sh` | Idempotent deployment |
-
-Agents declare Claude Code tools in `tools:`; external CLIs run through `Bash`
-and each agent lists the subcommands it may use. `gcloud`, `glab`, `kubectl`,
-`helm`, `flux` and `argocd` are read-only everywhere: mutations go through IaC
-or CI, never through an ad-hoc call. `presales-architect` has no `Bash` at all.
+| `templates/AGENTS.md.template` | Engagement instructions to copy into a client repo |
+| `templates/settings.json.template` | Per-repo `Stop` hook that blocks "done" until the check passes |
+| `install.sh` | Idempotent deployment and drift check |
 
 ## Install
 
-Requires a Linux or WSL2 filesystem (under `~`, never `/mnt/c`), `git`,
-`python3`, and an SSH `private` host alias.
+Requires macOS, Linux or WSL2 (under `~`, never `/mnt/c`), `git`, `python3`,
+`jq`, `claude`, and an SSH `private` host alias.
 
 ```sh
 git clone git@private:mjebalidev/dotfiles-claude.git ~/Private/dotfiles-claude
 cd ~/Private/dotfiles-claude
 ./install.sh
+./install.sh --check
 ```
-
-Then start a fresh session and run `/agents`.
 
 | Flag | Effect |
 |---|---|
-| *(none)* | Links `agents`, `skills`, `commands`, `CLAUDE.md`; merges settings; sets `core.hooksPath` |
-| `--no-git-hooks` | Same, without touching `core.hooksPath` |
+| *(none)* | Links, merges settings, installs the plugins, sets `core.hooksPath` |
+| `--check` | Reports every difference between the repo and `~/.claude`, changes nothing, exits 1 on drift |
+| `--no-git-hooks` | Leaves `core.hooksPath` alone |
 
-Re-running is a no-op when everything is already in place. Anything in the way
-is moved to `*.bak.<n>`; nothing is deleted.
+Links are rebuilt from the checkout's current path, so re-running after moving
+the repo or changing machine repairs them. Anything in the way is moved to
+`*.bak.<n>`; nothing is deleted.
+
+Tools the config expects on `PATH` (Homebrew names):
+
+```sh
+brew install jq terraform-ls yaml-language-server pyright ast-grep difftastic kubeconform
+```
+
+## Guardrails
+
+Rules that must hold every time live in settings, not in prose:
+
+| Mechanism | Covers |
+|---|---|
+| `permissions.deny` | Reads of `.env`, Terraform state, SSH keys, gcloud, glab and Vault credentials |
+| `permissions.ask` | Mutating `kubectl`, `helm`, `tofu`/`terraform`/`terragrunt`, `gcloud`, `glab`, `flux`, `argocd`, `vault` calls |
+| `autoMode.environment` | `$defaults` plus the shape of the stack, so the classifier keeps its built-in rules |
+| Format hook | `tofu fmt` and `terragrunt hcl fmt` always; `ruff` and `prettier` only where the project configures them |
+
+Deny and ask rules hold in every permission mode, auto mode included. They match
+command text, so `sh -c '…'` or an absolute binary path slips past them; the
+sandbox (`/sandbox`) is the OS-level layer.
 
 ## The commit hook
 
@@ -117,5 +142,5 @@ Host private
 ## What is not here
 
 Nothing from `~/.claude` that is sensitive or machine-local: credentials,
-`projects/`, `history.jsonl`, `sessions/`, and the rest of `settings.json`
-including the `autoMode` environment block.
+`projects/`, `history.jsonl`, `sessions/`, the `autoMode` entries specific to a
+client, and skills synced from claude.ai (`skills/synced/`, ignored).
