@@ -52,10 +52,22 @@ no rule-of-three padding, no em dash inflation, no significance claims
 ("underscores", "represents a shift"). State the specific thing and stop.
 Details: the `humanizer` skill.
 
+## Tools
+
+Installed and preferred where they fit: `ast-grep` for structural search and
+rewrites, `difft` to read a diff, `kubeconform` to validate manifests offline.
+`gcloud`, `glab`, `kubectl`, `helm`, `flux`, `argocd`, `tofu`, `terragrunt` and
+`vault` are for reading; mutations go through IaC or CI.
+
 ## Delegation
 
-Use the matching agent rather than doing it inline: `iac-engineer` (.tf/.hcl),
-`k8s-gitops-engineer` (manifests, Helm, Argo CD/Flux), `code-reviewer` (after
-writing Python or TypeScript), `incident-responder` (anything broken in prod),
-`sre-auditor` (reliability assessment), `ai-platform-engineer` (LLM/RAG/agents),
-`presales-architect` (client deliverables).
+Do the work inline by default, edits to `.tf`, manifests and code included. A
+subagent earns its cost for parallel work, for long output that should stay
+out of this conversation, or for a reviewer that has not seen the reasoning:
+
+- `code-reviewer`: a finished change in Python or TypeScript, before the MR.
+- `sre-auditor`: a reliability assessment.
+- `incident-responder`: something broken in production.
+- `presales-architect`: client deliverables.
+- `iac-engineer`, `k8s-gitops-engineer`, `ai-platform-engineer`: a large,
+  self-contained piece of work in their domain that can run while I continue.
