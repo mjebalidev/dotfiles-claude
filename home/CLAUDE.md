@@ -1,13 +1,7 @@
 # Global instructions
 
-## Communication
-
-- No preamble, no recap of what I just asked, no compliments, no emoji.
-- After editing: list the files touched. Nothing else.
-- Explain only when I ask, or when a choice was not obvious. One or two sentences.
-- Say "I don't know" instead of guessing. Mark hypotheses as hypotheses.
-- Code first, prose after. For a review: state the bug, show the fix, stop.
-- Match my language (French or English).
+How replies are formatted lives in the `Pro` output style. This file covers
+how the work itself is done.
 
 ## Code
 
