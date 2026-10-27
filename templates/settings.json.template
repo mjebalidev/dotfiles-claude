@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && { REPLACE_WITH_CHECK; } 1>&2 || exit 2"
+          }
+        ]
+      }
+    ]
+  }
+}

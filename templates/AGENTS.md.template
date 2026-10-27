@@ -1,8 +1,10 @@
-# CLAUDE.md — [Client / Engagement name]
+# AGENTS.md — [Client / Engagement name]
 
-> Engagement template. Copy to the root of the client repo, fill in the sections,
-> delete what does not apply. Target: 60 lines. The global ~/.claude/CLAUDE.md
-> already covers communication, code, commits and documentation; do not repeat it.
+> Engagement template. Copy to the root of the client repo as `AGENTS.md`, fill
+> in the sections, delete what does not apply. Target: 60 lines. AGENTS.md is
+> read by GitLab Duo, Codex and Cursor; Claude Code reads it through a one-line
+> `CLAUDE.md` containing `@AGENTS.md`. The global ~/.claude/CLAUDE.md already
+> covers code, commits and documentation; do not repeat it.
 
 ## Context
 - Client: [name, industry]
