@@ -45,10 +45,11 @@ flowchart LR
 
 Editing a linked file changes the next session. No copy step, no reinstall.
 `settings.json` stays a real file because it also holds machine- and
-client-specific state (the `autoMode` entries `/auto-mode-setup` writes,
-permissions approved from a prompt), so `install.sh` merges the fragment into
-it: lists are unioned, every other key is left alone. Plugin edits apply after
-`/reload-plugins`.
+client-specific state, such as the `autoMode` entries `/auto-mode-setup`
+writes, so `install.sh` merges the fragment into it. Lists are unioned, so an
+entry removed from the fragment must also be removed from `settings.json` by
+hand. Scalars set by the fragment are overwritten on every run; keys it does
+not set are left alone. Plugin edits apply after `/reload-plugins`.
 
 ## Contents
 
@@ -100,8 +101,8 @@ Rules that must hold every time live in settings, not in prose:
 
 | Mechanism | Covers |
 |---|---|
-| `permissions.deny` | Reads of `.env`, Terraform state, SSH keys, gcloud, glab and Vault credentials |
-| `permissions.ask` | Mutating `kubectl`, `helm`, `tofu`/`terraform`/`terragrunt`, `gcloud`, `glab`, `flux`, `argocd`, `vault` calls |
+| `permissions.deny` | Reads of `.env` files (not `.env.example`), Terraform state, SSH keys, gcloud, glab and Vault credentials, anywhere on disk |
+| `permissions.ask` | The common mutating forms of `kubectl`, `helm`, `tofu`/`terraform`/`terragrunt`, `gcloud`, `glab`, `flux`, `argocd`, `vault` |
 | `autoMode.environment` | `$defaults` plus the shape of the stack, so the classifier keeps its built-in rules |
 | Format hook | `tofu fmt` and `terragrunt hcl fmt` always; `ruff` and `prettier` only where the project configures them |
 
