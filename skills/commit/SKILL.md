@@ -1,5 +1,7 @@
 ---
+name: commit
 description: Stage and commit the working tree as Angular commits, split by subject
+disable-model-invocation: true
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git log:*)
 ---
 
