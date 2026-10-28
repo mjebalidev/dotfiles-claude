@@ -60,7 +60,7 @@ not set are left alone. Plugin edits apply after `/reload-plugins`.
 | `home/settings.base.json` | Attribution off, output style, status line, plugins, permission rules, auto mode environment |
 | `home/statusline.sh` | Model · effort · context │ branch │ MR │ gcloud project │ kube context |
 | `agents/` | 7 subagents: IaC, Kubernetes/GitOps, code review, incidents, SRE audit, AI platform, pre-sales |
-| `skills/` | `commit`, `humanizer`, `doc-writer`, `sre-audit`, `presales-deliverables`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
+| `skills/` | `commit`, `learn`, `humanizer`, `doc-writer`, `sre-audit`, `presales-deliverables`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
 | `plugins/dotfiles` | `terraform-ls` and `yaml-language-server`, format-on-edit hook, end-of-session learnings capture into `~/.claude/learnings/inbox/` |
 | `githooks/commit-msg` | Strips AI trailers, then enforces the Angular header |
 | `templates/AGENTS.md.template` | Engagement instructions to copy into a client repo |

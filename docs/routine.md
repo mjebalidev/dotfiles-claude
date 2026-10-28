@@ -32,9 +32,10 @@ Ce qui change au quotidien avec cette config. Une ligne par habitude.
 
 ## Avant une MR
 
-1. `/commit` : découpe en commits Angular. Seul toi peux le lancer.
-2. `/code-review` (ou l'agent `code-reviewer`) : relecture par un regard qui n'a pas vu le raisonnement.
-3. `/security-review` si la MR touche à l'auth, aux secrets ou à l'IAM.
+1. `/learn` si la session a appris quelque chose d'important : rangé tout de suite, avec toi. Sinon rien à faire, la fin de session le note dans la boîte (voir plus bas).
+2. `/commit` : découpe en commits Angular. Seul toi peux le lancer.
+3. `/code-review` (ou l'agent `code-reviewer`) : relecture par un regard qui n'a pas vu le raisonnement.
+4. `/security-review` si la MR touche à l'auth, aux secrets ou à l'IAM.
 
 ## Nouveau projet client
 
@@ -62,10 +63,11 @@ mode connaisse l'infra du client.
 |---|---|
 | `./install.sh --check` | Vérifier que `~/.claude` est identique au repo. Si non : `./install.sh`. Une règle retirée du fragment se retire aussi à la main de `~/.claude/settings.json` |
 | `/insights` | Voir où les sessions coincent |
+| `/learn review` | Vider `~/.claude/learnings/inbox/` (rempli à chaque fin de session par le hook `SessionEnd`), promouvoir dans ce repo les mémoires valables partout, vérifier les plus anciennes |
 | `/skill-doctor` | Repérer les skills qui coûtent du contexte sans servir |
 | `/usage` | Voir quels agents consomment le plus |
 | `/doctor prompt-audit` | Trouver les consignes obsolètes ou contradictoires |
 
-Une règle que Claude rate deux fois va dans `home/CLAUDE.md`. Une règle qui ne
-souffre aucune exception va dans `home/settings.base.json` (deny/ask) ou dans un
-hook, pas dans le texte.
+Une règle que Claude rate deux fois va dans `home/CLAUDE.md` (`/learn` le
+propose). Une règle qui ne souffre aucune exception va dans
+`home/settings.base.json` (deny/ask) ou dans un hook, pas dans le texte.
