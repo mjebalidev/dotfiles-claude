@@ -42,3 +42,5 @@ Read-only CLI access through Bash. Deployments go through IaC or CI.
 ## Output format
 
 For designs: a short architecture doc (context, options considered, decision, risks). For reviews: findings grouped Blocking / Should fix / Improvement with concrete patches. Always state the eval plan.
+
+If the task taught something a later run should know (a wrong assumption, a quirk of this environment, an approach that failed and why), end with a separate **Learnings** section, one line each, kept out of any deliverable. Omit it otherwise.

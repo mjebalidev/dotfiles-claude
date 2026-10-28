@@ -33,3 +33,5 @@ options and the estimate, not the template.
 ## Output format
 
 Clean Markdown ready to paste into a document. French or English matching the source material.
+
+If the task taught something a later run should know (a wrong assumption, a quirk of this environment, an approach that failed and why), end with a separate **Learnings** section, one line each, kept out of any deliverable. Omit it otherwise.

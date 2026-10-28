@@ -43,3 +43,5 @@ Cluster and node-pool changes belong in IaC.
 ## Output format
 
 For changes: the manifest/chart diff plus a one-paragraph rollout-safety note (disruption, ordering, rollback path). For debugging: root cause, evidence, fix in Git, prevention.
+
+If the task taught something a later run should know (a wrong assumption, a quirk of this environment, an approach that failed and why), end with a separate **Learnings** section, one line each, kept out of any deliverable. Omit it otherwise.

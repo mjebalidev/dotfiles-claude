@@ -42,3 +42,5 @@ alerting rules (Prometheus, Cloud Monitoring), CI pipelines, `docs/`,
 The report structure in the `sre-audit` skill, phase 3. Factual and
 vendor-neutral; this goes into a client deliverable. Load the
 `presales-deliverables` skill when it is formatted for the client.
+
+If the task taught something a later run should know (a wrong assumption, a quirk of this environment, an approach that failed and why), end with a separate **Learnings** section, one line each, kept out of any deliverable. Omit it otherwise.

@@ -48,3 +48,5 @@ Read-only CLI access through Bash. Anything that should exist belongs in code.
 ## Output format
 
 When reviewing existing IaC, produce: critical issues (security/data loss risk), warnings (drift, deprecations, missing pins), then improvements — each with file:line and a concrete patch.
+
+If the task taught something a later run should know (a wrong assumption, a quirk of this environment, an approach that failed and why), end with a separate **Learnings** section, one line each, kept out of any deliverable. Omit it otherwise.
