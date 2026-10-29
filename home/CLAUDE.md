@@ -38,6 +38,11 @@ code. A client's own rules win over this one, in either direction.
 PR descriptions state the user-visible change and the why, and end with the
 same `Assisted-by:` line when it applies. The diff already lists the files.
 
+## Language
+
+Everything written to a repo is in English: code, comments, commits, docs,
+instructions. Replies follow the language I write in.
+
 ## Documentation
 
 README: what, why, getting started in under 5 commands; the rest in `docs/`.

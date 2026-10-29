@@ -60,7 +60,7 @@ not set are left alone. Plugin edits apply after `/reload-plugins`.
 | `home/settings.base.json` | Attribution off, output style, status line, plugins |
 | `home/statusline.sh` | Model · effort · context bar │ branch │ MR │ VPN tunnel │ gcloud configuration │ kube context, red on prod |
 | `agents/` | 5 subagents: IaC, Kubernetes/GitOps, code review, incidents, AI platform |
-| `skills/` | `commit`, `humanizer`, `doc-writer`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
+| `skills/` | `commit`, `learn`, `humanizer`, `doc-writer`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
 | `plugins/dotfiles` | `terraform-ls` and `yaml-language-server`, format-on-edit hook |
 | `bin/kube-sync` | One kubeconfig per client from `~/.config/kube/clusters.d/`, short context names, prod read-only in k9s |
 | `home/kube.zsh` | `kx`: pick a kube context for one shell, inside the client direnv selected |
@@ -69,6 +69,7 @@ not set are left alone. Plugin edits apply after `/reload-plugins`.
 | `templates/AGENTS.md.template` | Engagement instructions to copy into a client repo |
 | `templates/settings.json.template` | Per-repo `Stop` hook that blocks "done" until the check passes |
 | `install.sh` | Idempotent deployment and drift check |
+| `docs/routine.md` | Day-to-day habits with this setup: sessions, clusters, "done", merge requests, weekly upkeep |
 
 ## Standalone, or imported by a team configuration
 
