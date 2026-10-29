@@ -3,7 +3,7 @@
 # statusline.sh — Claude Code status line.
 #
 #   Opus 5.5 · high ▰▰▱▱▱ 34% │ ⎇ main !3 │ MR !42 │ ⇄ wg:dev │ ◆ qwen3-coder-30b │
-#   ⚙ cpu 12% · ram 18/24G · gpu 40% │ ☁ acme │ ⎈ acme-prod-app
+#   ⚙ cpu ▕▂▂▏ 12%  ▦ ram ▕▆▆▏ 78% 18/24G  ◈ gpu ▕▃▃▏ 40% │ ☁ acme │ ⎈ acme-prod-app
 #
 # The cloud segment is the gcloud configuration (one per client, set by direnv)
 # and the kube segment the context, red on production. Both are read straight
@@ -70,17 +70,30 @@ if command -v scutil >/dev/null; then
     }')
 fi
 
-# Local models: LM Studio's server lists what is loaded. Shown only while a
-# model is loaded; the machine segment comes with it, or on demand with
-# STATUSLINE_SYSTEM=1 or the file ~/.claude/statusline-system (toggled
-# without restarting the session). Every probe is cheap (sysctl, vm_stat, ps, ioreg): no
-# top, no lms (which can launch the app).
+# Local models: LM Studio's server lists what is loaded; shown only while a
+# model is. Every probe is cheap (sysctl, vm_stat, ps, ioreg): no top, no lms
+# (which can launch the app).
 lms_port="${LMSTUDIO_PORT:-1234}"
 lms_models="$(curl -s -m 0.3 "http://127.0.0.1:${lms_port}/api/v0/models" 2>/dev/null |
   jq -r '[.data[]? | select(.state == "loaded") | .id] | join(", ")' 2>/dev/null)"
 [ -n "${lms_models}" ] && parts+=("${magenta}◆ ${lms_models}${reset}")
 
-if [ -n "${lms_models}" ] || [ "${STATUSLINE_SYSTEM:-0}" = "1" ] || [ -e "${HOME}/.claude/statusline-system" ]; then
+# Machine load, always on (STATUSLINE_SYSTEM=0 hides it). Each metric gets a
+# icon and a one-character gauge in its own colour: green, yellow, red past
+# its warn and crit thresholds. RAM warns earlier, since a model that no longer fits swaps.
+gauge() {
+  local pct="$1" warn="$2" crit="$3" icon="$4" label="$5" suffix="${6:-}" c
+  # A two-cell tank: the level fills from the bottom in the metric's colour,
+  # the empty part stays a dark grey background, and thin side bars hug it
+  # (right-eighth block before, left-eighth after) so it reads as a rectangle.
+  # An array, not a substring: slicing multibyte glyphs breaks outside UTF-8 locales.
+  local bars=(" " ▁ ▂ ▃ ▄ ▅ ▆ ▇ █) tank="${esc}[48;5;237m" edge="${esc}[38;5;244m" g
+  [ "${pct}" -gt 100 ] && pct=100
+  if [ "${pct}" -ge "${crit}" ]; then c="${red}"; elif [ "${pct}" -ge "${warn}" ]; then c="${yellow}"; else c="${green}"; fi
+  g="${bars[$(((pct * 8 + 99) / 100))]}"
+  printf '%s%s %s %s▕%s%s%s%s%s▏%s %s%%%s%s' "${c}" "${icon}" "${label}" "${edge}" "${tank}${c}" "${g}" "${g}" "${reset}" "${edge}" "${reset}${c}" "${pct}" "${suffix}" "${reset}"
+}
+if [ "${STATUSLINE_SYSTEM:-1}" != "0" ]; then
   if [ "$(uname -s)" = "Darwin" ]; then
     ncpu="$(sysctl -n hw.ncpu)"
     cpu="$(ps -A -o %cpu= | awk -v n="${ncpu}" '{s += $1} END {printf "%.0f", s / n}')"
@@ -99,10 +112,10 @@ if [ -n "${lms_models}" ] || [ "${STATUSLINE_SYSTEM:-0}" = "1" ] || [ -e "${HOME
     gpu="$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)"
   fi
   mem_pct=$((mem_used * 100 / mem_total))
-  if [ "${mem_pct}" -ge 90 ]; then color="${red}"; elif [ "${mem_pct}" -ge 75 ]; then color="${yellow}"; else color="${dim}"; fi
-  sys="cpu ${cpu}% · ram $((mem_used / 1073741824))/$((mem_total / 1073741824))G"
-  [ -n "${gpu}" ] && sys+=" · gpu ${gpu}%"
-  parts+=("${color}⚙ ${sys}${reset}")
+  sys="$(gauge "${cpu}" 60 85 ⚙ cpu)"
+  sys+="  $(gauge "${mem_pct}" 75 90 ▦ ram " $((mem_used / 1073741824))/$((mem_total / 1073741824))G")"
+  [ -n "${gpu}" ] && sys+="  $(gauge "${gpu}" 60 85 ◈ gpu)"
+  parts+=("${sys}")
 fi
 
 gcloud_dir="${CLOUDSDK_CONFIG:-${HOME}/.config/gcloud}"

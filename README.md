@@ -58,7 +58,7 @@ not set are left alone. Plugin edits apply after `/reload-plugins`.
 | `home/CLAUDE.md` | Global instructions: code, Angular commits, docs, tone, tools, delegation |
 | `output-styles/pro.md` | `Pro` output style: result first, no filler, evidence for "done" |
 | `home/settings.base.json` | Attribution off, output style, status line, plugins |
-| `home/statusline.sh` | Model · effort · context bar │ branch │ MR │ VPN tunnel │ LM Studio model and CPU/RAM/GPU when a local model is loaded (or on demand: `touch ~/.claude/statusline-system`) │ gcloud configuration │ kube context, red on prod |
+| `home/statusline.sh` | Model · effort · context bar │ branch │ MR │ VPN tunnel │ LM Studio model when one is loaded │ CPU, RAM and GPU gauges, green/yellow/red by load │ gcloud configuration │ kube context, red on prod |
 | `agents/` | 5 subagents: IaC, Kubernetes/GitOps, code review, incidents, AI platform |
 | `skills/` | `commit`, `learn`, `humanizer`, `doc-writer`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
 | `plugins/dotfiles` | `terraform-ls` and `yaml-language-server`, format-on-edit hook |
