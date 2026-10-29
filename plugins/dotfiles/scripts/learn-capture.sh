@@ -59,7 +59,8 @@ git log already records, and anything only this conversation needed.
 Print one line per learning, nothing else:
 - [<destination>] <the learning, one specific sentence>
 
-<destination> is one of: project (fact about this repo or client), agents-md
+<destination> is one of: project (fact about this one repo only), client (holds
+across this client's repos), employer (the employer or its own platforms), agents-md
 (the client's team should know it too), claude-md (how the user wants work
 done everywhere), agent:<name>, skill:<name>, style (how replies are written),
 settings (must never happen).
