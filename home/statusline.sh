@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# statusline.sh — Claude Code status line.
+# statusline.sh — status line for Claude Code, Antigravity CLI and Copilot CLI,
+# which all run a command with a JSON payload on stdin.
 #
 #   ☸ acme-prod-app │ ☁ acme │ ⇄ wg:dev │ ⎇ main !3 │ MR !42
 #   Opus 5.5 · high ▰▰▱▱▱ 34% │ usage 5h 7% ↻14:30 │ ◆ qwen3-coder-30b │
@@ -21,14 +22,34 @@ os="$(uname -s)"
 
 # Every field in one jq call (one call costs ~6 ms, there used to be ten). The
 # unit separator, unlike a tab, does not collapse empty fields when read.
+# The same script serves Claude Code, Antigravity and Copilot CLI: fields that
+# differ between them are read with fallbacks, and plan usage is normalised to
+# "label:percent:reset-epoch" windows separated by ";".
+#   Claude Code   rate_limits.five_hour / seven_day {used_percentage, resets_at}
+#   Antigravity   quota.<bucket> {remaining_fraction, reset_in_seconds, disabled}
+#   Copilot CLI   cost.total_premium_requests (a count; it exposes no quota)
 us=$'\037'
-IFS="${us}" read -r model_name fast effort ctx cwd pr pr_kind five five_reset week week_reset < <(
-  jq -r --arg us "${us}" '[
-    .model.display_name, .fast_mode, .effort.level, .context_window.used_percentage,
-    .workspace.current_dir, .pr.number, .pr.kind,
-    .rate_limits.five_hour.used_percentage, .rate_limits.five_hour.resets_at,
-    .rate_limits.seven_day.used_percentage, .rate_limits.seven_day.resets_at
-  ] | map(. // "" | tostring) | join($us)' 2>/dev/null
+IFS="${us}" read -r model_name fast effort ctx cwd pr pr_kind windows premium cache_warm cache_expires cache_requests < <(
+  jq -r --arg us "${us}" '
+    def window_name: if test("week") then "week" elif test("day|daily") then "day"
+               elif test("5h|five|hour") then "5h" else . end;
+    [
+      .model.display_name, .fast_mode, (.effort.level // .model.effort),
+      (.context_window.current_context_used_percentage // .context_window.used_percentage),
+      (.workspace.current_dir // .cwd), .pr.number, .pr.kind,
+      ( if .rate_limits then
+          [ (.rate_limits.five_hour | select(. != null) | "5h:\(.used_percentage // ""):\(.resets_at // "")"),
+            (.rate_limits.seven_day | select(. != null) | "week:\(.used_percentage // ""):\(.resets_at // "")") ]
+        elif (.quota | type) == "object" then
+          [ .quota | to_entries[] | select((.value.disabled // false) | not)
+            | select(.value.remaining_fraction != null)
+            | {l: (.key | window_name), p: ((1 - .value.remaining_fraction) * 100 | round),
+               r: (if .value.reset_in_seconds then (now + .value.reset_in_seconds | floor) else "" end)} ]
+          | sort_by({"5h": 0, "day": 1, "week": 2}[.l] // 3) | map("\(.l):\(.p):\(.r)")
+        else [] end | join(";") ),
+      .cost.total_premium_requests,
+      .prompt_cache.warm, .prompt_cache.expires_at, .prompt_cache.requests
+    ] | map(if . == null then "" else tostring end) | join($us)' 2>/dev/null
 )
 
 # A whole number from whatever came in ("69.5", "", "n/a"), or nothing.
@@ -66,6 +87,20 @@ if pct="$(int "${ctx}")"; then
   filled=$(((pct + 10) / 20)) bar=""
   for i in 1 2 3 4 5; do if [ "${i}" -le "${filled}" ]; then bar+="▰"; else bar+="▱"; fi; done
   head+="${head:+ }${color}${bar} ${pct}%${reset}"
+fi
+# Prompt cache: an idle session loses it, and the next message then re-reads
+# the whole context at full price. Shown only when it matters: in the last
+# five minutes before it expires, or once it has gone cold.
+if requests="$(int "${cache_requests}")" && [ "${requests}" -gt 0 ]; then
+  if [ "${cache_warm}" = "false" ]; then
+    head+="${head:+ }${esc}[38;5;131mcache cold${reset}"
+  elif expires="$(int "${cache_expires}")"; then
+    left=$((expires - $(date +%s)))
+    if [ "${left}" -le 300 ] && [ "${left}" -gt 0 ]; then
+      if [ "${left}" -ge 60 ]; then left_txt="$((left / 60))m"; else left_txt="${left}s"; fi
+      head+="${head:+ }${esc}[38;5;251mcache expires in ${left_txt}${reset}"
+    fi
+  fi
 fi
 [ -n "${head}" ] && model=("${head}")
 
@@ -122,10 +157,13 @@ gauge() {
 }
 
 # Plan usage, adaptive and in words: quiet when there is room, detailed near a
-# limit. The 5-hour window always shows, with its reset time, which turns into
-# a countdown from 70%. The week only shows from 50%, with its reset day.
+# limit. The first (shortest) window always shows with its reset time, which
+# turns into a countdown from 70%; longer windows show from 50%, or when they
+# are the only one. Works for any tool that passes windows (see the jq above).
 #   usage 5h 7% ↻19:50
 #   usage 5h 74% resets in 56m · week 52% ↻Tue 14:00
+#   usage week 6% ↻Mon 07:50                   (Antigravity: one weekly bucket)
+#   usage 12 premium requests                  (Copilot: a count, no quota)
 # Greys, then a lighter grey from 70% and a muted red from 90%.
 fmt_time() {
   if [ "${os}" = "Darwin" ]; then date -r "$1" "+$2" 2>/dev/null; else date -d "@$1" "+$2" 2>/dev/null; fi
@@ -140,24 +178,27 @@ shade() {
   elif [ "$1" -ge 70 ]; then printf '%s' "${esc}[38;5;251m"
   else printf '%s' "${esc}[38;5;245m"; fi
 }
-five="$(int "${five}")" five_reset="$(int "${five_reset}")"
-week="$(int "${week}")" week_reset="$(int "${week_reset}")"
-if [ -n "${five}${week}" ]; then
-  grey="${esc}[38;5;245m" sep="${esc}[38;5;241m·${grey}" usage=""
-  if [ -n "${five}" ]; then
-    usage="$(shade "${five}")5h ${five}%${grey}"
-    if [ -n "${five_reset}" ]; then
-      if [ "${five}" -ge 70 ]; then usage+=" resets in $(countdown "${five_reset}")"
-      else usage+=" ↻$(fmt_time "${five_reset}" %H:%M)"; fi
-    fi
+grey="${esc}[38;5;245m" sep="${esc}[38;5;241m·${grey}" usage="" n=0 count=0
+[ -n "${windows}" ] && count=$(($(tr -cd ';' <<<"${windows}" | wc -c) + 1))
+IFS=';' read -r -a wins <<<"${windows}"
+for w in ${wins[@]+"${wins[@]}"}; do
+  n=$((n + 1))
+  IFS=':' read -r wlabel wpct wreset <<<"${w}"
+  wpct="$(int "${wpct}")" || continue
+  wreset="$(int "${wreset}")" || wreset=""
+  [ "${n}" -gt 1 ] && [ "${wpct}" -lt 50 ] && continue
+  part="$(shade "${wpct}")${wlabel} ${wpct}%${grey}"
+  if [ -n "${wreset}" ]; then
+    if [ "${wpct}" -ge 70 ]; then part+=" resets in $(countdown "${wreset}")"
+    elif [ $((wreset - $(date +%s))) -lt 86400 ]; then part+=" ↻$(fmt_time "${wreset}" %H:%M)"
+    else part+=" ↻$(fmt_time "${wreset}" '%a %H:%M')"; fi
   fi
-  # Without a 5-hour window the week is all there is: show it at any level.
-  if [ -n "${week}" ] && { [ "${week}" -ge 50 ] || [ -z "${five}" ]; }; then
-    usage+="${usage:+ ${sep} }$(shade "${week}")week ${week}%${grey}"
-    [ -n "${week_reset}" ] && usage+=" ↻$(fmt_time "${week_reset}" '%a %H:%M')"
-  fi
-  [ -n "${usage}" ] && usage_seg=("${grey}usage ${usage}${reset}")
+  usage+="${usage:+ ${sep} }${part}"
+done
+if [ -z "${usage}" ] && [ "${count}" -eq 0 ] && premium="$(int "${premium}")" && [ "${premium}" -gt 0 ]; then
+  usage="${premium} premium request$([ "${premium}" -gt 1 ] && echo s)"
 fi
+[ -n "${usage}" ] && usage_seg=("${grey}usage ${usage}${reset}")
 
 # Local models: LM Studio's server lists what is loaded; shown only while a
 # model is. Every probe is cheap (sysctl, vm_stat, ps, ioreg): no top, no lms
