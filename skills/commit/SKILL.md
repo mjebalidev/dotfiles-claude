@@ -31,6 +31,9 @@ Format rules: `## Commits` in the global CLAUDE.md. On top of them:
   the log.
 - Body: why the change was needed. Skip it when the subject already says
   everything. Never list the files.
+- Last line: `Assisted-by: claude-code:<your model ID>` when this session
+  wrote or shaped the change, unless the client's notes forbid it. A commit of
+  work done without an agent gets none.
 
 ## Report
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# commit-msg — strip AI attribution trailers, then enforce Angular headers.
+# commit-msg — strip AI co-author trailers, check Assisted-by, then enforce
+# Angular headers.
 #
 # Activated globally via core.hooksPath, so it must not shadow a repository's
 # own hook: a local .git/hooks/commit-msg runs first and its exit code wins.
@@ -38,7 +39,23 @@ case "${subject}" in
   Merge\ *|Revert\ \"*|fixup!\ *|squash!\ *) exit 0 ;;
 esac
 
-# 4. Angular header.
+# 4. Agent disclosure is the one AI trailer kept, so its shape must stay
+# greppable across repos.
+bad_trailer="$(grep -i -E '^[[:space:]]*Assisted-by:' "${MSG_FILE}" \
+  | grep -v -E '^Assisted-by: [a-z0-9._-]+:[a-z0-9._-]+( .+)?$' || true)"
+if [ -n "${bad_trailer}" ]; then
+  cat >&2 <<EOF
+commit-msg: malformed Assisted-by trailer.
+
+  ${bad_trailer}
+
+Expected: Assisted-by: <tool>:<model>
+  Assisted-by: claude-code:claude-opus-5-5
+EOF
+  exit 1
+fi
+
+# 5. Angular header.
 pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|test|revert)(\([a-z0-9._/-]+\))?!?: [^A-Z].{0,70}[^.]$'
 if printf '%s\n' "${subject}" | grep -q -E "${pattern}"; then
   exit 0
