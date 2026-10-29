@@ -7,7 +7,7 @@ What changes day to day with this config. One line per habit.
 | Before | Now |
 |---|---|
 | `claude` in the repo | `claude -w <name>` for any task that can run alongside another (one worktree per session) |
-| Checking the gcloud project and kube context by hand | Read the status line: `☁ <gcloud configuration>` and `⎈ <context>` (or `⎈ <client> · no context`) are always shown |
+| Checking the gcloud project and kube context by hand | Read the status line: `☁ <gcloud configuration>` and `☸ <context>` (or `☸ <client> · no context`) are always shown |
 | Nothing | `/effort low` to iterate fast, `/effort xhigh` for a hard bug, `ultrathink` for a single question |
 
 ## Clients, clusters and cloud accounts
@@ -19,7 +19,7 @@ account and kubectl sees no client cluster.
 | Before | Now |
 |---|---|
 | `kubectx`, which switches the context of every terminal | `cd` into the client folder, then `kx` (fzf) or `kx <context>`: the context holds for this terminal only, `kx -` drops it. No default context: a new terminal never lands on production |
-| Guessing which cluster you are on | Prompt and Claude's status line: `☁ <client>` and `⎈ <context>`, red background on production, yellow on test/int. k9s frames production in red |
+| Guessing which cluster you are on | Prompt and Claude's status line: `☁ <client>` and `☸ <context>`, red background on production, yellow on test/int. k9s frames production in red |
 | One `~/.kube/config` with every cluster | `~/.kube/configs/<client>/config`, rebuilt by `kube-sync <client>` from `~/.config/kube/clusters.d/` (fragments from a private repo) |
 | `gcloud container clusters get-credentials` | Add the cluster to the inventory (`dns_endpoint`, `internal_ip`, `prod`), then `kube-sync <client>` |
 | `gcloud config set account` per client | Nothing: `CLOUDSDK_ACTIVE_CONFIG_NAME` follows the folder |

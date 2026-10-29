@@ -9,7 +9,7 @@ style = 'bold blue'
 
 [kubernetes]
 disabled = false
-symbol = '⎈ '
+symbol = '☸ '
 format = '[$symbol$context( \($namespace\))]($style) '
 style = 'bold green'
 contexts = [

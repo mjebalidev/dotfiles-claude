@@ -3,7 +3,7 @@
 # statusline.sh — Claude Code status line.
 #
 #   Opus 5.5 · high ▰▰▱▱▱ 34% │ ⎇ main !3 │ MR !42 │ ⇄ wg:dev │ ◆ qwen3-coder-30b │
-#   ⚙ cpu ▕▂▂▏ 12%  ▦ ram ▕▆▆▏ 78% 18/24G  ◈ gpu ▕▃▃▏ 40% │ ☁ acme │ ⎈ acme-prod-app
+#   ⚙ cpu ▕▂▂▏ 12%  ▦ ram ▕▆▆▏ 78% 18/24G  ◈ gpu ▕▃▃▏ 40% │ ☁ acme │ ☸ acme-prod-app
 #
 # The cloud segment is the gcloud configuration (one per client, set by direnv)
 # and the kube segment the context, red on production. Both are read straight
@@ -141,14 +141,14 @@ kctx="$(awk '/^current-context:/{print $2; exit}' "${kubeconfig}" 2>/dev/null)"
 [[ "${kctx}" == gke_*_*_* ]] && kctx="${kctx##*_}"
 if [ -n "${kctx}" ]; then
   case "${kctx}" in
-    *-prod-*) parts+=("${prod} ⎈ ${kctx} ${reset}") ;;
-    *-test-* | *-int-*) parts+=("${yellow}⎈ ${kctx}${reset}") ;;
-    *) parts+=("${green}⎈ ${kctx}${reset}") ;;
+    *-prod-*) parts+=("${prod} ☸ ${kctx} ${reset}") ;;
+    *-test-* | *-int-*) parts+=("${yellow}☸ ${kctx}${reset}") ;;
+    *) parts+=("${green}☸ ${kctx}${reset}") ;;
   esac
 elif [[ "${kubeconfig}" == */.kube/configs/*/config ]]; then
   # A client kubeconfig with no context picked yet.
   client="${kubeconfig%/config}"
-  parts+=("${dim}⎈ ${client##*/} · no context${reset}")
+  parts+=("${dim}☸ ${client##*/} · no context${reset}")
 fi
 
 out=""
