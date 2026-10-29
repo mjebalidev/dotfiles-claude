@@ -28,12 +28,15 @@ Angular format, enforced by the `commit-msg` hook:
 - One commit per logical change. Split by subject, not by file.
 - Never `--no-verify`.
 
-Never mention AI anywhere in commits, PRs, branch names or code: no
-`Co-Authored-By: Claude`, no `Generated with Claude Code`, no
-`Claude-Session:`. The work is mine.
+I am the author and answer for every commit. When an agent wrote or shaped
+the change, the commit says so in one trailer, last:
+`Assisted-by: <tool>:<model>` (`Assisted-by: claude-code:claude-opus-5-5`).
+Nothing else: no `Co-Authored-By` for an agent, no `Signed-off-by` on my
+behalf, no `Generated with`, no `Claude-Session:`, no AI in branch names or
+code. A client's own rules win over this one, in either direction.
 
-PR descriptions state the user-visible change and the why. The diff already
-lists the files.
+PR descriptions state the user-visible change and the why, and end with the
+same `Assisted-by:` line when it applies. The diff already lists the files.
 
 ## Documentation
 
@@ -71,20 +74,9 @@ client, so a session started elsewhere sees another client's clusters or none.
 
 ## Where a piece of knowledge goes
 
-Three layers, by who may read it. Decide the layer before writing anything
-down, in any session.
-
-| Holds for | Goes in | Visibility |
-|---|---|---|
-| Any employer, any client: how I work, a technique, a tool | this repo (`~/Private/dotfiles-claude`) | public |
-| My employer: identity, internal conventions, its own platforms | `work-config/employer/` | private |
-| One client: clusters, access paths, quirks, decisions | `work-config/clients/<client>/` | private |
-
-`work-config` is cloned at `~/Projects/<employer>/work-config` and links its
-files into place (`~/Projects/<client>/CLAUDE.md`, `.envrc`, the cluster
-inventory). Edit the file in `work-config`, never the link target's copy.
-This repo is public: no client or employer name, project ID, hostname,
-endpoint or account goes into it. Secrets go in no repo.
+Decide who may read a fact before writing it down. This repo is public: no
+employer or client name, project ID, hostname, endpoint or account goes in it;
+those live in private repos, and secrets in none.
 
 ## Delegation
 
@@ -93,8 +85,6 @@ subagent earns its cost for parallel work, for long output that should stay
 out of this conversation, or for a reviewer that has not seen the reasoning:
 
 - `code-reviewer`: a finished change in Python or TypeScript, before the MR.
-- `sre-auditor`: a reliability assessment.
 - `incident-responder`: something broken in production.
-- `presales-architect`: client deliverables.
 - `iac-engineer`, `k8s-gitops-engineer`, `ai-platform-engineer`: a large,
   self-contained piece of work in their domain that can run while I continue.

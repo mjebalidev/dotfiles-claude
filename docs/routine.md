@@ -29,16 +29,10 @@ client.
 | Expliquer le client à Claude à chaque session | `~/Projects/<client>/CLAUDE.md`, hors du repo, chargé automatiquement |
 | Nouveau dossier de travail | Le créer sous le bon `~/Projects/<client>/` : l'identité git (`includeIf`) et l'environnement suivent |
 
-Ce qui est propre à l'employeur ou à un client vit dans le repo privé
-`work-config` (`employer/`, `clients/<client>/`), cloné sous
-`~/Projects/<employeur>/` : ses `install.sh` posent les liens. On modifie
-toujours le fichier dans `work-config`, jamais la cible du lien. Ce repo-ci
-reste public et générique.
-
-Nouveau client : copier un dossier `clients/<client>/` existant dans
-`work-config`, adapter `CLAUDE.md`, `envrc` et `clusters.yaml`, puis
-`gcloud config configurations create <client> --no-activate`,
-`./install.sh` dans `work-config` et `kube-sync <client>`.
+Le contexte d'un client ou de l'employeur vit dans un repo privé par mission,
+cloné dans le dossier de la mission et relié par des liens ; on modifie
+toujours le fichier dans ce repo, jamais la cible du lien. Ce repo-ci reste
+public et générique.
 
 ## Pendant le travail
 
@@ -98,6 +92,6 @@ mode connaisse l'infra du client.
 | `/usage` | Voir quels agents consomment le plus |
 | `/doctor prompt-audit` | Trouver les consignes obsolètes ou contradictoires |
 
-Une règle que Claude rate deux fois va dans `home/CLAUDE.md` (`/learn` le
+Une règle que Claude rate deux fois va dans les règles d'équipe ou dans `home/CLAUDE.md` (`/learn` le
 propose). Une règle qui ne souffre aucune exception va dans
 `home/settings.base.json` (deny/ask) ou dans un hook, pas dans le texte.
