@@ -2,7 +2,8 @@
 #
 # statusline.sh — Claude Code status line.
 #
-#   Opus 5.5 · high ▰▰▱▱▱ 34% │ ⎇ main !3 │ MR !42 │ ⇄ wg:dev │ ☁ acme │ ⎈ acme-prod-app
+#   Opus 5.5 · high ▰▰▱▱▱ 34% │ ⎇ main !3 │ MR !42 │ ⇄ wg:dev │ ◆ qwen3-coder-30b │
+#   ⚙ cpu 12% · ram 18/24G · gpu 40% │ ☁ acme │ ⎈ acme-prod-app
 #
 # The cloud segment is the gcloud configuration (one per client, set by direnv)
 # and the kube segment the context, red on production. Both are read straight
@@ -67,6 +68,41 @@ if command -v scutil >/dev/null; then
       if ($0 ~ /\(Connecting\)/) name = name "…"
       print kind "\t" name
     }')
+fi
+
+# Local models: LM Studio's server lists what is loaded. Shown only while a
+# model is loaded; the machine segment comes with it, or on demand with
+# STATUSLINE_SYSTEM=1 or the file ~/.claude/statusline-system (toggled
+# without restarting the session). Every probe is cheap (sysctl, vm_stat, ps, ioreg): no
+# top, no lms (which can launch the app).
+lms_port="${LMSTUDIO_PORT:-1234}"
+lms_models="$(curl -s -m 0.3 "http://127.0.0.1:${lms_port}/api/v0/models" 2>/dev/null |
+  jq -r '[.data[]? | select(.state == "loaded") | .id] | join(", ")' 2>/dev/null)"
+[ -n "${lms_models}" ] && parts+=("${magenta}◆ ${lms_models}${reset}")
+
+if [ -n "${lms_models}" ] || [ "${STATUSLINE_SYSTEM:-0}" = "1" ] || [ -e "${HOME}/.claude/statusline-system" ]; then
+  if [ "$(uname -s)" = "Darwin" ]; then
+    ncpu="$(sysctl -n hw.ncpu)"
+    cpu="$(ps -A -o %cpu= | awk -v n="${ncpu}" '{s += $1} END {printf "%.0f", s / n}')"
+    mem_total="$(sysctl -n hw.memsize)"
+    # Used = app (active) + wired + compressed, as Activity Monitor counts it.
+    mem_used="$(vm_stat | awk -F: '
+      /page size of/ {match($0, /[0-9]+/); size = substr($0, RSTART, RLENGTH)}
+      /Pages active/ || /Pages wired down/ || /occupied by compressor/ {gsub(/[ .]/, "", $2); p += $2}
+      END {printf "%.0f", p * size}')"
+    gpu="$(ioreg -r -d 1 -w 0 -c IOAccelerator 2>/dev/null | grep -o '"Device Utilization %"=[0-9]*' | head -1 | cut -d= -f2)"
+  else
+    ncpu="$(nproc)"
+    cpu="$(awk -v n="${ncpu}" '{printf "%.0f", $1 / n * 100}' /proc/loadavg)"
+    mem_total="$(awk '/MemTotal/ {print $2 * 1024}' /proc/meminfo)"
+    mem_used="$(awk '/MemTotal/ {t = $2} /MemAvailable/ {a = $2} END {print (t - a) * 1024}' /proc/meminfo)"
+    gpu="$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)"
+  fi
+  mem_pct=$((mem_used * 100 / mem_total))
+  if [ "${mem_pct}" -ge 90 ]; then color="${red}"; elif [ "${mem_pct}" -ge 75 ]; then color="${yellow}"; else color="${dim}"; fi
+  sys="cpu ${cpu}% · ram $((mem_used / 1073741824))/$((mem_total / 1073741824))G"
+  [ -n "${gpu}" ] && sys+=" · gpu ${gpu}%"
+  parts+=("${color}⚙ ${sys}${reset}")
 fi
 
 gcloud_dir="${CLOUDSDK_CONFIG:-${HOME}/.config/gcloud}"
