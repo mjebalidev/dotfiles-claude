@@ -7,8 +7,38 @@ Ce qui change au quotidien avec cette config. Une ligne par habitude.
 | Avant | Maintenant |
 |---|---|
 | `claude` dans le repo | `claude -w <nom>` pour toute tâche qui peut tourner en parallèle d'une autre (un worktree par session) |
-| Vérifier à la main le projet gcloud et le contexte kube | Lire la statusline : `gcp:<projet>` et `k8s:<cluster>` s'affichent en permanence |
+| Vérifier à la main le projet gcloud et le contexte kube | Lire la statusline : `☁ <configuration gcloud>` et `⎈ <contexte>` (ou `⎈ <client> · no context`) s'affichent en permanence |
 | Rien | `/effort low` pour itérer vite, `/effort xhigh` pour un bug difficile, `ultrathink` pour une seule question |
+
+## Clients, clusters et comptes cloud
+
+Un dossier par client sous `~/Projects/<client>/`. Le `.envrc` à sa racine
+choisit le kubeconfig, la configuration gcloud et les ADC de ce client. En
+dehors, gcloud utilise le compte par défaut et kubectl ne voit aucun cluster
+client.
+
+| Avant | Maintenant |
+|---|---|
+| `kubectx` qui change le contexte de tous les terminaux | `cd ~/Projects/<client>` puis `kx` (fzf) ou `kx <contexte>` : le contexte ne vaut que pour ce terminal, `kx -` le retire. Aucun contexte par défaut : un nouveau terminal ne tombe jamais sur la prod |
+| Deviner sur quel cluster on est | Prompt et barre de Claude : `☁ <client>` et `⎈ <contexte>`, sur fond rouge en prod, en jaune en test/int. k9s encadre la prod en rouge |
+| Un `~/.kube/config` avec tous les clusters | `~/.kube/configs/<client>/config`, régénéré par `kube-sync <client>` à partir de `~/.config/kube/clusters.d/` (fragments du repo privé) |
+| `gcloud container clusters get-credentials` | Ajouter le cluster dans l'inventaire (`dns_endpoint`, `internal_ip`, `prod`) puis `kube-sync <client>` |
+| `gcloud config set account` selon le client | Rien : `CLOUDSDK_ACTIVE_CONFIG_NAME` suit le dossier |
+| Terraform avec les ADC du dernier login | `GOOGLE_APPLICATION_CREDENTIALS` suit le dossier (`adc-<client>.json`). Les ADC expirent : `gcloud auth application-default login --account <compte>` puis recopier le fichier |
+| Se souvenir de ne rien toucher en prod | Les contextes `*-prod-*` s'ouvrent en lecture seule dans k9s |
+| Expliquer le client à Claude à chaque session | `~/Projects/<client>/CLAUDE.md`, hors du repo, chargé automatiquement |
+| Nouveau dossier de travail | Le créer sous le bon `~/Projects/<client>/` : l'identité git (`includeIf`) et l'environnement suivent |
+
+Ce qui est propre à l'employeur ou à un client vit dans le repo privé
+`work-config` (`employer/`, `clients/<client>/`), cloné sous
+`~/Projects/<employeur>/` : ses `install.sh` posent les liens. On modifie
+toujours le fichier dans `work-config`, jamais la cible du lien. Ce repo-ci
+reste public et générique.
+
+Nouveau client : copier un dossier `clients/<client>/` existant dans
+`work-config`, adapter `CLAUDE.md`, `envrc` et `clusters.yaml`, puis
+`gcloud config configurations create <client> --no-activate`,
+`./install.sh` dans `work-config` et `kube-sync <client>`.
 
 ## Pendant le travail
 
