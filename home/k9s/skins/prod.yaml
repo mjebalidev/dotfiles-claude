@@ -1,0 +1,20 @@
+# k9s skin for production contexts, set per context by kube-sync. Only the
+# frame changes: a red border and header so prod is obvious at a glance.
+k9s:
+  body:
+    logoColor: red
+  info:
+    sectionColor: red
+  frame:
+    border:
+      fgColor: darkred
+      focusColor: red
+    crumbs:
+      fgColor: white
+      bgColor: darkred
+      activeColor: red
+    title:
+      fgColor: red
+      highlightColor: orange
+      counterColor: orange
+      filterColor: orange

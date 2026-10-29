@@ -8,6 +8,10 @@
 #   home/settings.base.json          merged into ~/.claude/settings.json
 #   plugins/dotfiles                 installed from this repo as a marketplace
 #   githooks/                        wired through git config --global core.hooksPath
+#   bin/kube-sync                    symlinked into ~/.local/bin/
+#   home/starship.toml               symlinked to ~/.config/starship.toml
+#   home/k9s/skins/                  symlinked into the k9s skins directory
+#   home/kube.zsh                    checked only: ~/.zshrc must source it (kx)
 #
 # Idempotent. Nothing is deleted: anything in the way is moved to *.bak.<n>,
 # and settings.json is copied to settings.json.bak.<n> before it is merged.
@@ -60,7 +64,7 @@ backup() {
 }
 
 link_one() {
-  local src="${REPO_DIR}/$1" link="${CLAUDE_DIR}/${2:-$1}"
+  local src="${REPO_DIR}/$1" link="${3:-${CLAUDE_DIR}}/${2:-$1}"
 
   if [ ! -e "${src}" ]; then
     echo "ERROR: missing source: ${src}" >&2
@@ -104,6 +108,26 @@ link_one output-styles
 link_one home/CLAUDE.md CLAUDE.md
 link_one home/statusline.sh statusline.sh
 unlink_obsolete commands
+[ "${CHECK}" -eq 1 ] || mkdir -p "${HOME}/.local/bin"
+link_one bin/kube-sync kube-sync "${HOME}/.local/bin"
+[ "${CHECK}" -eq 1 ] || mkdir -p "${HOME}/.config"
+link_one home/starship.toml starship.toml "${HOME}/.config"
+
+# k9s keeps its skins under a platform-specific directory; ask k9s for it.
+if command -v k9s >/dev/null; then
+  k9s_skins="$(k9s info 2>/dev/null | sed -n 's/.*Skins:[^/]*//p')"
+  [ "${CHECK}" -eq 1 ] || mkdir -p "${k9s_skins}"
+  link_one home/k9s/skins/prod.yaml prod.yaml "${k9s_skins}"
+fi
+
+# kx changes the calling shell's KUBECONFIG, so it is a function sourced from
+# ~/.zshrc. The shell rc is the user's to edit: report, never append.
+zsh_line="source \"${REPO_DIR}/home/kube.zsh\""
+if grep -qxF "${zsh_line}" "${HOME}/.zshrc" 2>/dev/null; then
+  echo "ok: ~/.zshrc sources home/kube.zsh"
+else
+  drift "~/.zshrc does not source home/kube.zsh; add: ${zsh_line}"
+fi
 
 # settings.json: merge the fragment, keep every other key untouched. Lists are
 # unioned, fragment entries first, so permission rules saved from a prompt and

@@ -58,10 +58,13 @@ not set are left alone. Plugin edits apply after `/reload-plugins`.
 | `home/CLAUDE.md` | Global instructions: code, Angular commits, docs, tone, tools, delegation |
 | `output-styles/pro.md` | `Pro` output style: result first, no filler, evidence for "done" |
 | `home/settings.base.json` | Attribution off, output style, status line, plugins, permission rules, auto mode environment |
-| `home/statusline.sh` | Model · effort · context │ branch │ MR │ gcloud project │ kube context |
+| `home/statusline.sh` | Model · effort · context bar │ branch │ MR │ VPN tunnel │ gcloud configuration │ kube context, red on prod |
 | `agents/` | 7 subagents: IaC, Kubernetes/GitOps, code review, incidents, SRE audit, AI platform, pre-sales |
 | `skills/` | `commit`, `learn`, `humanizer`, `doc-writer`, `sre-audit`, `presales-deliverables`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
 | `plugins/dotfiles` | `terraform-ls` and `yaml-language-server`, format-on-edit hook, end-of-session learnings capture into `~/.claude/learnings/inbox/` |
+| `bin/kube-sync` | One kubeconfig per client from `~/.config/kube/clusters.d/`, short context names, prod read-only in k9s |
+| `home/kube.zsh` | `kx`: pick a kube context for one shell, inside the client direnv selected |
+| `home/starship.toml`, `home/k9s/skins/` | Prompt with gcloud configuration and kube context, red on prod; red k9s frame on prod |
 | `githooks/commit-msg` | Strips AI trailers, then enforces the Angular header |
 | `templates/AGENTS.md.template` | Engagement instructions to copy into a client repo |
 | `templates/settings.json.template` | Per-repo `Stop` hook that blocks "done" until the check passes |
@@ -92,7 +95,7 @@ the repo or changing machine repairs them. Anything in the way is moved to
 Tools the config expects on `PATH` (Homebrew names):
 
 ```sh
-brew install jq terraform-ls yaml-language-server pyright ast-grep difftastic kubeconform
+brew install jq yq fzf bash direnv k9s starship terraform-ls yaml-language-server pyright ast-grep difftastic kubeconform
 ```
 
 ## Guardrails
@@ -101,7 +104,7 @@ Rules that must hold every time live in settings, not in prose:
 
 | Mechanism | Covers |
 |---|---|
-| `permissions.deny` | Reads of `.env` files (not `.env.example`), Terraform state, SSH keys, gcloud, glab and Vault credentials, anywhere on disk |
+| `permissions.deny` | Reads of `.env`, `.env.local`, `.env.*.local`, `.env.prod*` and `.env.staging`, Terraform state, SSH keys, gcloud, glab and Vault credentials, anywhere on disk |
 | `permissions.ask` | The common mutating forms of `kubectl`, `helm`, `tofu`/`terraform`/`terragrunt`, `gcloud`, `glab`, `flux`, `argocd`, `vault` |
 | `autoMode.environment` | `$defaults` plus the shape of the stack, so the classifier keeps its built-in rules |
 | Format hook | `tofu fmt` and `terragrunt hcl fmt` always; `ruff` and `prettier` only where the project configures them |

@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+#
+# kube-sync — build one kubeconfig per client from ~/.config/kube/clusters.d/*.yaml.
+#
+# Each fragment maps a client to the gcloud configuration it authenticates
+# with and its clusters:
+#
+#   acme:
+#     gcloud: acme
+#     clusters:
+#       - {name: acme-prod-app, project: acme-p-app, cluster: app-0, location: europe-west3, prod: true}
+#
+#   dns_endpoint  the control plane is only reachable through its DNS endpoint
+#   internal_ip   reach the private endpoint (needs the client VPN)
+#   prod          k9s opens the context read-only, with the prod skin
+#
+# The fragments are private: they come from a repo of their own, linked in.
+#
+#   ~/.kube/configs/<client>/config  contexts renamed to the inventory's short names
+#   k9s context config               readOnly and the prod skin for clusters marked prod
+#
+# The file is rebuilt from scratch on every run, so a cluster removed from the
+# inventory disappears from it. ~/.kube/config is never touched.
+#
+# One directory per client because gke-gcloud-auth-plugin caches its token
+# next to the kubeconfig, keyed on current-context only: two clients sharing a
+# directory would be handed each other's token.
+#
+# Usage: kube-sync [client...]   (default: every client in the inventory)
+
+set -euo pipefail
+
+INVENTORY_DIR="${KUBE_INVENTORY_DIR:-${HOME}/.config/kube/clusters.d}"
+OUT_DIR="${HOME}/.kube/configs"
+K9S_CLUSTERS="$(k9s info 2>/dev/null | sed -n 's/.*Context Configs:[^/]*//p')"
+
+fragments=("${INVENTORY_DIR}"/*.yaml)
+[ -f "${fragments[0]}" ] || { echo "ERROR: no inventory in ${INVENTORY_DIR}" >&2; exit 1; }
+INVENTORY="$(mktemp)"
+trap 'rm -f "${INVENTORY}"' EXIT
+yq eval-all '. as $f ireduce ({}; . * $f)' "${fragments[@]}" > "${INVENTORY}"
+mkdir -p "${OUT_DIR}"
+
+clients=("$@")
+[ "${#clients[@]}" -gt 0 ] || mapfile -t clients < <(yq 'keys | .[]' "${INVENTORY}")
+
+# Context config k9s reads for <cluster>/<context>: read-only, red skin. Set in
+# place, because k9s keeps its own state (active namespace, view) in the file.
+k9s_prod() {
+  local cluster="$1" context="$2" dir
+  [ -n "${K9S_CLUSTERS}" ] || { echo "WARNING: k9s not found, ${context} not made read-only" >&2; return; }
+  dir="${K9S_CLUSTERS}/${cluster}/${context}"
+  mkdir -p "${dir}"
+  [ -f "${dir}/config.yaml" ] || printf 'k9s:\n  cluster: %s\n' "${cluster}" > "${dir}/config.yaml"
+  yq -i '.k9s.readOnly = true | .k9s.skin = "prod"' "${dir}/config.yaml"
+  echo "  read-only in k9s: ${context}"
+}
+
+for client in "${clients[@]}"; do
+  gcloud_config="$(yq ".\"${client}\".gcloud" "${INVENTORY}")"
+  [ "${gcloud_config}" != "null" ] || { echo "ERROR: ${client} not in ${INVENTORY}" >&2; exit 1; }
+
+  scratch="$(mktemp -d)"
+  trap 'rm -rf "${scratch}" "${INVENTORY}"' EXIT
+  parts=()
+  echo "${client} (gcloud configuration: ${gcloud_config})"
+
+  count="$(yq ".\"${client}\".clusters | length" "${INVENTORY}")"
+  for i in $(seq 0 $((count - 1))); do
+    entry=".\"${client}\".clusters[${i}]"
+    name="$(yq "${entry}.name" "${INVENTORY}")"
+    project="$(yq "${entry}.project" "${INVENTORY}")"
+    cluster="$(yq "${entry}.cluster" "${INVENTORY}")"
+    location="$(yq "${entry}.location" "${INVENTORY}")"
+    extra=()
+    [ "$(yq "${entry}.dns_endpoint" "${INVENTORY}")" = "true" ] && extra+=(--dns-endpoint)
+    [ "$(yq "${entry}.internal_ip" "${INVENTORY}")" = "true" ] && extra+=(--internal-ip)
+
+    part="${scratch}/${name}.yaml"
+    CLOUDSDK_ACTIVE_CONFIG_NAME="${gcloud_config}" KUBECONFIG="${part}" \
+      gcloud container clusters get-credentials "${cluster}" \
+      --project "${project}" --location "${location}" "${extra[@]}" --quiet 2>/dev/null
+    KUBECONFIG="${part}" kubectl config rename-context \
+      "$(KUBECONFIG="${part}" kubectl config current-context)" "${name}" >/dev/null
+    parts+=("${part}")
+    echo "  ${name}"
+
+    if [ "$(yq "${entry}.prod" "${INVENTORY}")" = "true" ]; then
+      k9s_prod "$(KUBECONFIG="${part}" kubectl config view --minify -o jsonpath='{.clusters[0].name}')" "${name}"
+    fi
+  done
+
+  mkdir -p "${OUT_DIR}/${client}"
+  out="${OUT_DIR}/${client}/config"
+  (IFS=:; KUBECONFIG="${parts[*]}" kubectl config view --flatten) > "${scratch}/merged.yaml"
+  # No current-context: the shell picks one (kx, kubectl --context), so a
+  # fresh terminal never lands on prod by default.
+  KUBECONFIG="${scratch}/merged.yaml" kubectl config unset current-context >/dev/null
+  install -m 600 "${scratch}/merged.yaml" "${out}"
+  echo "  -> ${out}"
+  rm -rf "${scratch}"
+  trap 'rm -f "${INVENTORY}"' EXIT
+done

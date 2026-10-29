@@ -1,0 +1,18 @@
+# Starship prompt. Only the modules that differ from the defaults.
+
+# The gcloud configuration follows the folder (direnv); its name says which
+# client the shell is acting as. Account and project would only add noise.
+[gcloud]
+format = '[$symbol$active]($style) '
+symbol = '☁ '
+style = 'bold blue'
+
+[kubernetes]
+disabled = false
+symbol = '⎈ '
+format = '[$symbol$context( \($namespace\))]($style) '
+style = 'bold green'
+contexts = [
+  { context_pattern = '.*-prod-.*', style = 'bold white bg:red' },
+  { context_pattern = '.*-(test|int)-.*', style = 'bold yellow' },
+]
