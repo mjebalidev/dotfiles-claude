@@ -32,6 +32,7 @@ shell is zsh and does not word-split `$var`.
 | Container → app → repo | `docker exec coolify-db psql -U coolify -d coolify -tAc "select uuid,name,git_repository,git_branch,fqdn from applications"`; the container name starts with the app `uuid` |
 | Host services and timers | `systemctl list-units --type=service --state=running`, `systemctl list-timers` |
 | Coolify auto-update | `select is_auto_update_enabled from instance_settings` |
+| Auto-deploy actually fires | last rows of `application_deployment_queues` against the repos' last push; if they lag, read the GitHub App's webhook URL and recent deliveries (below) |
 | Disk held by images | `docker system df` |
 
 Versions to compare with the latest release (`gh api repos/<r>/releases/latest --jq .tag_name`):
@@ -59,6 +60,20 @@ Application dependencies, for each repo from the Coolify table:
   test job do not mean the same thing.
 - **Repos with no Renovate and no Dependabot**: say so; they get no update PRs
   and need a manual bump.
+- **What a grouped PR really changes**: read the diff of every "minor
+  updates" or lockfile PR before proposing it. A Python or Node runtime bump
+  (`.python-version`, `FROM python:…`, `node-version`) hides in there; a
+  green CI does not prove the image builds, since CI may not build it.
+
+GitHub App webhook (Coolify signs the JWT; run in the `coolify` container):
+
+```sh
+docker exec coolify php artisan tinker --execute='$j=generateGithubJwt(App\Models\GithubApp::find(<id>)); echo Illuminate\Support\Facades\Http::withToken($j)->get("https://api.github.com/app/hook/config")->body();'
+```
+
+`/app/hook/deliveries?per_page=5` on the same token lists recent deliveries
+and their status. A URL on a port the host firewall drops means no
+deployment fires on merge. Changing it is mine to do in the GitHub UI.
 
 ## Phase 2 — Report
 
@@ -83,7 +98,8 @@ my approval; I may approve some steps and defer others (the reboot to the
 evening, for example).
 
 1. **Apps.** Merge the security PRs whose CI is green, then the lockfile and
-   minor-update PRs whose CI is green, one repo at a time, with the merge
+   minor-update PRs whose CI is green and whose diff bumps no runtime (a
+   runtime bump gets its own PR and a test build), one repo at a time, with the merge
    method the repo allows (`gh repo view --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed`).
    Before merging, `docker pull` the base images the Dockerfiles name on the
    host, so the build Coolify starts does not reuse a stale cached base and
@@ -100,6 +116,22 @@ evening, for example).
    host tools from their package source.
 4. **Cleanup.** `docker image prune` for images no container uses, after the
    deployments have finished.
+
+Deploying without the webhook, as a forced rebuild (fresh base layers), one
+app at a time, waiting for each:
+
+```sh
+docker exec coolify php artisan tinker --execute='$a=App\Models\Application::where("uuid","<uuid>")->first(); $u=(string) new Visus\Cuid2\Cuid2(); queue_application_deployment(application: $a, deployment_uuid: $u, force_rebuild: true, no_questions_asked: true); echo $u;'
+```
+
+then poll `select status from application_deployment_queues where deployment_uuid='<u>'`
+until `finished` or `failed`; the `logs` column holds the build output. A
+failed deployment leaves the previous container running.
+
+Traefik's version lives in the proxy configuration Coolify saved
+(`servers.proxy->last_saved_proxy_configuration`) and in
+`/data/coolify/proxy/docker-compose.yml`: change both, or Coolify puts the
+old tag back the next time it writes the proxy.
 
 ## Phase 4 — Execute and verify
 
