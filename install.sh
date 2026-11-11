@@ -12,6 +12,7 @@
 #   home/starship.toml               symlinked to ~/.config/starship.toml
 #   home/k9s/skins/                  symlinked into the k9s skins directory
 #   home/kube.zsh                    checked only: ~/.zshrc must source it (kx)
+#   private/skills/                  symlinked into ~/Private/.claude/skills/ (both modes)
 #
 # Layered mode: when a team configuration (agent-config) generated
 # ~/.claude/CLAUDE.md, only the personal layer is installed (CLAUDE.personal.md,
@@ -107,6 +108,19 @@ unlink_obsolete() {
   echo "removed obsolete link: ${link}"
 }
 
+# Skills for personal projects only. Claude Code finds .claude/skills in the
+# parent folders of the session, up to the git root, so they show up in
+# sessions started in ~/Private or in a non-git folder under it, never in
+# client work.
+link_private_skills() {
+  local d dest="${PRIVATE_DIR:-${HOME}/Private}/.claude/skills"
+  [ "${CHECK}" -eq 1 ] || mkdir -p "${dest}"
+  for d in "${REPO_DIR}"/private/skills/*/; do
+    [ -f "${d}SKILL.md" ] || continue
+    link_one "private/skills/$(basename "${d}")" "$(basename "${d}")" "${dest}"
+  done
+}
+
 # Layered mode: a team configuration (agent-config) generated ~/.claude/CLAUDE.md
 # and owns the shared rules, skills, agents, permissions, plugin and hooks.
 # Only the personal layer goes on top, one link per item, so the two installs
@@ -134,6 +148,7 @@ install_personal_layer() {
   done
   [ "${CHECK}" -eq 1 ] || mkdir -p "${HOME}/.config"
   link_one home/starship.toml starship.toml "${HOME}/.config"
+  link_private_skills
 
   # Settings: only the keys the team leaves to each person.
   local status=0
@@ -188,6 +203,7 @@ unlink_obsolete commands
 link_one bin/kube-sync kube-sync "${HOME}/.local/bin"
 [ "${CHECK}" -eq 1 ] || mkdir -p "${HOME}/.config"
 link_one home/starship.toml starship.toml "${HOME}/.config"
+link_private_skills
 
 # k9s keeps its skins under a platform-specific directory; ask k9s for it.
 if command -v k9s >/dev/null; then

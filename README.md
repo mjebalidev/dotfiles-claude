@@ -61,6 +61,7 @@ not set are left alone. Plugin edits apply after `/reload-plugins`.
 | `home/statusline.sh` | Model · effort · context bar │ branch │ MR │ VPN tunnel │ plan usage from Claude Code, Antigravity or Copilot (adaptive: detail only near a limit) │ prompt cache about to expire │ LM Studio model when one is loaded │ CPU, RAM and GPU gauges, green/yellow/red by load. Two lines (where the agent works, then session and machine); hide groups in `~/.config/statusline.conf` with `STATUSLINE_HIDE="machine vpn"` (groups: kube cloud vpn git model usage local machine) │ gcloud configuration │ kube context, red on prod |
 | `agents/` | 5 subagents: IaC, Kubernetes/GitOps, code review, incidents, AI platform |
 | `skills/` | `commit`, `learn`, `humanizer`, `doc-writer`, `reverse-engineer-anything` (third-party, for the REA MCP server) |
+| `private/skills/` | Skills for personal projects only, linked into `~/Private/.claude/skills/`: `vps-chores` (check-up and updates of a Coolify VPS: OS, Docker, infra, app dependencies) |
 | `plugins/dotfiles` | `terraform-ls` and `yaml-language-server`, format-on-edit hook |
 | `bin/kube-sync` | One kubeconfig per client from `~/.config/kube/clusters.d/`, short context names, prod read-only in k9s |
 | `home/kube.zsh` | `kx`: pick a kube context for one shell, inside the client direnv selected |
@@ -92,6 +93,15 @@ In the layered mode every path has one owner: the team setup generates
 by one, and sets permissions, attribution, plugins and hooks. This script adds
 its items next to them and leaves anything the team set up alone, so a skill
 both provide resolves to the team's pinned copy.
+
+## Skills for personal projects only
+
+`private/skills/` is linked into `~/Private/.claude/skills/` (override the
+folder with `PRIVATE_DIR`), in both modes. Claude Code looks for
+`.claude/skills` in the parent folders of a session up to its git root, so
+these skills appear in a session started in `~/Private` or in a non-git
+folder under it, and never in `~/Projects`. A session started inside a git
+repo under `~/Private` does not see them either: start it one level up.
 
 ## Install
 
