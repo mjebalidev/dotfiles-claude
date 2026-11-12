@@ -41,6 +41,7 @@ trap 'rm -f "${INVENTORY}"' EXIT
 yq eval-all '. as $f ireduce ({}; . * $f)' "${fragments[@]}" > "${INVENTORY}"
 mkdir -p "${OUT_DIR}"
 
+skipped=()
 clients=("$@")
 [ "${#clients[@]}" -gt 0 ] || mapfile -t clients < <(yq 'keys | .[]' "${INVENTORY}")
 
@@ -77,9 +78,15 @@ for client in "${clients[@]}"; do
     [ "$(yq "${entry}.internal_ip" "${INVENTORY}")" = "true" ] && extra+=(--internal-ip)
 
     part="${scratch}/${name}.yaml"
-    CLOUDSDK_ACTIVE_CONFIG_NAME="${gcloud_config}" KUBECONFIG="${part}" \
+    # One missing cluster must not cost the client its whole kubeconfig: skip it,
+    # say why, and fail at the end.
+    if ! err="$(CLOUDSDK_ACTIVE_CONFIG_NAME="${gcloud_config}" KUBECONFIG="${part}" \
       gcloud container clusters get-credentials "${cluster}" \
-      --project "${project}" --location "${location}" "${extra[@]}" --quiet 2>/dev/null
+      --project "${project}" --location "${location}" "${extra[@]}" --quiet 2>&1)"; then
+      echo "  SKIPPED ${name}: ${err##*$'\n'}" >&2
+      skipped+=("${client}/${name}")
+      continue
+    fi
     KUBECONFIG="${part}" kubectl config rename-context \
       "$(KUBECONFIG="${part}" kubectl config current-context)" "${name}" >/dev/null
     parts+=("${part}")
@@ -90,6 +97,7 @@ for client in "${clients[@]}"; do
     fi
   done
 
+  [ "${#parts[@]}" -gt 0 ] || { echo "  no cluster reachable, ${OUT_DIR}/${client}/config left as is" >&2; rm -rf "${scratch}"; continue; }
   mkdir -p "${OUT_DIR}/${client}"
   out="${OUT_DIR}/${client}/config"
   (IFS=:; KUBECONFIG="${parts[*]}" kubectl config view --flatten) > "${scratch}/merged.yaml"
@@ -101,3 +109,5 @@ for client in "${clients[@]}"; do
   rm -rf "${scratch}"
   trap 'rm -f "${INVENTORY}"' EXIT
 done
+
+[ "${#skipped[@]}" -eq 0 ] || { echo "ERROR: skipped ${skipped[*]}" >&2; exit 1; }
