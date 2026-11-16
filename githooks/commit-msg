@@ -19,6 +19,31 @@ if [ -x "${local_hook}" ] && [ "$(readlink -f "${local_hook}")" != "$(readlink -
   "${local_hook}" "${MSG_FILE}"
 fi
 
+# 0. Identity guard. A clone outside the folder an includeIf covers commits
+# with the global identity, which may be an employer's. Rules live in the
+# user's gitconfig, one per remote prefix:
+#   git config --global --add identityguard.rule "git@github.com:me/ me@users.noreply.github.com"
+origin="$(git config remote.origin.url || true)"
+if [ -n "${origin}" ]; then
+  origin="$(printf '%s' "${origin}" | sed -E 's#^https://([^/]+)/#git@\1:#')"
+  while read -r prefix email; do
+    [ -n "${prefix}" ] || continue
+    case "${origin}" in "${prefix}"*) ;; *) continue ;; esac
+    for who in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do
+      actual="$(git var "${who}" | sed -E 's/.*<([^>]*)>.*/\1/')"
+      if [ "${actual}" != "${email}" ]; then
+        cat >&2 <<EOF
+commit-msg: ${who%_IDENT} email is ${actual}, but ${prefix} requires ${email}.
+
+  git config user.email ${email}
+  git commit --amend --reset-author --no-edit   (if the commit already exists)
+EOF
+        exit 1
+      fi
+    done
+  done < <(git config --get-all identityguard.rule || true)
+fi
+
 # 1. Drop AI attribution trailers, then any blank lines they left at the end.
 tmp="$(mktemp)"
 trap 'rm -f "${tmp}"' EXIT

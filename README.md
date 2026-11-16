@@ -157,6 +157,15 @@ malformed. It then checks the subject against:
 
 `Merge`, `Revert "`, `fixup!` and `squash!` subjects are exempt.
 
+Before any of that, the hook checks the author and committer email against
+`identityguard.rule` entries in the user's gitconfig, one per remote prefix.
+A clone outside the folder an `includeIf` covers otherwise commits with the
+global identity:
+
+```sh
+git config --global --add identityguard.rule "git@github.com:me/ me@users.noreply.github.com"
+```
+
 ## SSH `private` host alias
 
 The remote uses the `private` alias so `~/.ssh/config` decides which key and
