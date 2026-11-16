@@ -101,6 +101,9 @@ evening, for example).
    minor-update PRs whose CI is green and whose diff bumps no runtime (a
    runtime bump gets its own PR and a test build), one repo at a time, with the merge
    method the repo allows (`gh repo view --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed`).
+   A change of my own goes on a clone under `~/Private/`, where git picks the
+   personal identity; a clone anywhere else commits with the global work
+   address. Check `git log -1 --format=%ae` before pushing.
    Before merging, `docker pull` the base images the Dockerfiles name on the
    host, so the build Coolify starts does not reuse a stale cached base and
    the OS layer gets its fixes too. A repo with no update bot: bump the
